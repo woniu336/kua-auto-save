@@ -4,8 +4,16 @@
 ## 一键部署脚本
 
 ```
-curl -sS -O https://raw.githubusercontent.com/woniu336/kua-auto-save/main/save_kua.sh && chmod +x save_kua.sh && ./save_kua.sh install
+curl -sS -O https://raw.githubusercontent.com/woniu336/kua-auto-save/main/save_kua.sh && chmod +x save_kua.sh
 ```
+
+
+首次安装
+
+```
+./save_kua.sh install
+```
+
 
 使用方法：
 
@@ -46,6 +54,6 @@ crontab -l
 
 ```
 ./save_kua.sh stop
-rm -rf ~/kua-auto-save/venv
+rm -rf ~/kua-auto-save
 ```
 
