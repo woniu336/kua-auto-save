@@ -9,6 +9,7 @@ PROJECT_DIR="$HOME/kua-auto-save"
 VENV_DIR="$PROJECT_DIR/venv"
 PID_FILE="/tmp/save_kua.pid"
 LOG_FILE="$PROJECT_DIR/app.log"
+CRON_LOG_FILE="$PROJECT_DIR/quark_save.log"
 PORT="5000"
 GITHUB_REPO="https://github.com/woniu336/kua-auto-save.git"
 
@@ -72,16 +73,6 @@ clone_from_github() {
     
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✓ 项目克隆成功${NC}"
-        
-        # 检查是否克隆成功
-        if [ -f "$PROJECT_DIR/app.py" ]; then
-            echo -e "${GREEN}✓ 找到 app.py 文件${NC}"
-        else
-            echo -e "${YELLOW}警告: 未找到 app.py 文件${NC}"
-            echo "请检查项目结构:"
-            ls -la "$PROJECT_DIR/"
-        fi
-        
         return 0
     else
         echo -e "${RED}✗ 项目克隆失败${NC}"
@@ -128,35 +119,13 @@ install_requirements() {
     # 升级pip
     pip install --upgrade pip
     
-    # 先安装 app.py 中发现的额外依赖
-    echo "检查应用需要的额外依赖..."
-    if [ -f "$PROJECT_DIR/app.py" ]; then
-        # 检查常见的依赖
-        if grep -q "import aiohttp\|from aiohttp" "$PROJECT_DIR/app.py"; then
-            echo "安装: aiohttp"
-            pip install aiohttp
-        fi
-        if grep -q "import requests\|from requests" "$PROJECT_DIR/app.py"; then
-            echo "安装: requests"
-            pip install requests
-        fi
-        if grep -q "import bs4\|from bs4\|beautifulsoup" "$PROJECT_DIR/app.py"; then
-            echo "安装: beautifulsoup4"
-            pip install beautifulsoup4
-        fi
-        if grep -q "import selenium\|from selenium" "$PROJECT_DIR/app.py"; then
-            echo "安装: selenium"
-            pip install selenium
-        fi
-    fi
-    
     # 安装 requirements.txt 中的依赖
     if [ -f "$PROJECT_DIR/requirements.txt" ]; then
         echo "从 requirements.txt 安装依赖..."
         pip install -r "$PROJECT_DIR/requirements.txt"
     else
         echo "安装默认 Flask 依赖..."
-        pip install Flask==2.3.3 Werkzeug==2.3.7 Jinja2==3.1.2 itsdangerous==2.1.2 click==8.1.3
+        pip install Flask==2.3.3 Werkzeug==2.3.7 Jinja2==3.1.2 itsdangerous==2.1.2 click==8.1.3 requests aiohttp
     fi
     
     deactivate
@@ -176,12 +145,6 @@ setup_admin_account() {
     if [ ! -f "$PROJECT_DIR/app.py" ]; then
         echo -e "${RED}错误: app.py 文件不存在${NC}"
         return 1
-    fi
-    
-    # 显示当前配置（如果有）
-    if grep -q "VALID_USERS = {" "$PROJECT_DIR/app.py"; then
-        echo "当前配置的用户:"
-        grep -A 2 "VALID_USERS = {" "$PROJECT_DIR/app.py" | grep -E '\".*\":' || echo "  未找到用户配置"
     fi
     
     # 询问是否要修改
@@ -222,53 +185,19 @@ setup_admin_account() {
         break
     done
     
-    # 备份原文件
-    if [ ! -f "$PROJECT_DIR/app.py.backup" ]; then
-        cp "$PROJECT_DIR/app.py" "$PROJECT_DIR/app.py.backup"
-        echo -e "${GREEN}✓ 已备份原文件: app.py.backup${NC}"
-    fi
-    
-    # 替换 app.py 中的用户名密码
+    # 直接替换 app.py 中的用户名密码
     echo -e "${YELLOW}正在更新账户配置...${NC}"
     
-    # 尝试多种替换方法
-    success=false
-    
-    # 方法1: 替换完整的 VALID_USERS 字典
-    if grep -q "VALID_USERS = {" "$PROJECT_DIR/app.py"; then
-        # 使用临时文件确保格式正确
-        temp_file=$(mktemp)
-        python3 -c "
-import re
-with open('$PROJECT_DIR/app.py', 'r') as f:
-    content = f.read()
-    
-# 匹配 VALID_USERS = { ... } 格式
-pattern = r'VALID_USERS\s*=\s*\{[^}]*\}'
-replacement = '''VALID_USERS = {
-    \"$username\": \"$password\",
-}'''
-
-new_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
-with open('$temp_file', 'w') as f:
-    f.write(new_content)
-" && cp "$temp_file" "$PROJECT_DIR/app.py" && rm "$temp_file"
-        
-        if grep -q "\"$username\": \"$password\"" "$PROJECT_DIR/app.py"; then
-            success=true
-        fi
-    fi
-    
-    # 方法2: 如果方法1失败，尝试直接替换 admin:admin123
-    if [ "$success" = false ] && grep -q '"admin": "admin123"' "$PROJECT_DIR/app.py"; then
+    # 直接替换 admin:admin123 模式
+    if grep -q '"admin": "admin123"' "$PROJECT_DIR/app.py"; then
         sed -i "s/\"admin\": \"admin123\"/\"$username\": \"$password\"/g" "$PROJECT_DIR/app.py"
-        if grep -q "\"$username\": \"$password\"" "$PROJECT_DIR/app.py"; then
-            success=true
-        fi
+    else
+        # 替换 VALID_USERS 字典中的第一对用户名密码
+        sed -i "0,/\"[^\"]*\": \"[^\"]*\"/s/\"[^\"]*\": \"[^\"]*\"/\"$username\": \"$password\"/" "$PROJECT_DIR/app.py"
     fi
     
     # 验证修改
-    if [ "$success" = true ]; then
+    if grep -q "\"$username\": \"$password\"" "$PROJECT_DIR/app.py"; then
         echo -e "${GREEN}✓ 管理员账户设置成功${NC}"
         echo "用户名: $username"
     else
@@ -317,21 +246,13 @@ install_app() {
     # 设置管理员账户
     setup_admin_account
     
-    # 设置权限
-    echo "设置执行权限..."
-    chmod +x "$PROJECT_DIR/app.py"
-    
     echo ""
     echo -e "${GREEN}=== 安装完成 ===${NC}"
     echo "项目路径: $PROJECT_DIR"
     echo "虚拟环境: $VENV_DIR"
     echo "访问地址: http://localhost:$PORT"
     echo "日志文件: $LOG_FILE"
-    echo ""
-    echo "手动测试命令:"
-    echo "  cd $PROJECT_DIR"
-    echo "  source venv/bin/activate"
-    echo "  python app.py"
+    echo "追更日志: $CRON_LOG_FILE"
     echo ""
     echo -e "${YELLOW}请运行 '$0 start' 启动应用${NC}"
 }
@@ -449,7 +370,7 @@ restart_app() {
     start_app
 }
 
-# 查看日志
+# 查看应用日志
 view_log() {
     if [ -f "$LOG_FILE" ]; then
         echo "=== 应用日志 (最后50行) ==="
@@ -459,14 +380,24 @@ view_log() {
     fi
 }
 
+# 查看追更日志
+view_cron_log() {
+    if [ -f "$CRON_LOG_FILE" ]; then
+        echo "=== 追更日志 (最后20行) ==="
+        tail -20 "$CRON_LOG_FILE"
+    else
+        echo "追更日志文件不存在: $CRON_LOG_FILE"
+    fi
+}
+
 # 清理日志
 clean_log() {
     echo "清理日志文件..."
     if [ -f "$LOG_FILE" ]; then
         > "$LOG_FILE"
-        echo -e "${GREEN}✓ 日志已清理${NC}"
+        echo -e "${GREEN}✓ 应用日志已清理${NC}"
     else
-        echo "日志文件不存在"
+        echo "应用日志文件不存在"
     fi
 }
 
@@ -482,13 +413,13 @@ fix_deps() {
     fi
 }
 
-# 重置账户（新功能）
+# 重置账户
 reset_account() {
     echo "重置管理员账户..."
     setup_admin_account
 }
 
-# 显示当前账户（新功能）
+# 显示当前账户
 show_account() {
     echo "当前管理员账户配置:"
     
@@ -516,6 +447,7 @@ show_help() {
     echo "  $0 status     查看应用状态"
     echo "  $0 restart    重启应用"
     echo "  $0 log        查看应用日志"
+    echo "  $0 cron.log   查看追更日志"
     echo "  $0 clean      清理日志文件"
     echo "  $0 fix        修复应用依赖"
     echo "  $0 account    显示当前账户"
@@ -526,7 +458,8 @@ show_help() {
     echo "  项目路径: $PROJECT_DIR"
     echo "  虚拟环境: $VENV_DIR"
     echo "  运行端口: $PORT"
-    echo "  日志文件: $LOG_FILE"
+    echo "  应用日志: $LOG_FILE"
+    echo "  追更日志: $CRON_LOG_FILE"
     echo "  GitHub仓库: $GITHUB_REPO"
     echo ""
     echo "快速开始:"
@@ -543,6 +476,7 @@ case "$1" in
     "status")  status_app  ;;
     "restart") restart_app ;;
     "log")     view_log    ;;
+    "cron.log") view_cron_log ;;
     "clean")   clean_log   ;;
     "fix")     fix_deps    ;;
     "account") show_account ;;
