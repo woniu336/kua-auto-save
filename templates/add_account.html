@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}添加新账号 - 夸克网盘任务管理系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="bi bi-person-plus"></i> 添加新账号</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_account') }}">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">账号名称</label>
+                        <input type="text" class="form-control" id="name" name="name" required 
+                               placeholder="例如：我的夸克账号">
+                        <div class="form-text">用于标识账号的显示名称</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="cookie" class="form-label">Cookie</label>
+                        <textarea class="form-control" id="cookie" name="cookie" rows="3" required 
+                                  placeholder="请输入夸克网盘的Cookie"></textarea>
+                        <div class="form-text">从浏览器开发者工具中获取的夸克网盘Cookie</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="dd_bot_token" class="form-label">钉钉机器人Token</label>
+                            <input type="text" class="form-control" id="dd_bot_token" name="dd_bot_token" 
+                                   placeholder="可选：钉钉机器人Webhook Token">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="dd_bot_secret" class="form-label">钉钉机器人Secret</label>
+                            <input type="text" class="form-control" id="dd_bot_secret" name="dd_bot_secret" 
+                                   placeholder="可选：钉钉机器人签名Secret">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="tg_bot_token" class="form-label">Telegram机器人Token</label>
+                            <input type="text" class="form-control" id="tg_bot_token" name="tg_bot_token" 
+                                   placeholder="可选：Telegram机器人Token">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="tg_user_id" class="form-label">Telegram用户ID</label>
+                            <input type="text" class="form-control" id="tg_user_id" name="tg_user_id" 
+                                   placeholder="可选：Telegram用户ID">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="crontab" class="form-label">定时任务表达式</label>
+                        <input type="text" class="form-control" id="crontab" name="crontab" 
+                               placeholder="例如：0 2 * * *（每天凌晨2点执行）">
+                        <div class="form-text">Cron表达式，留空则不启用定时任务</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary me-md-2">
+                            <i class="bi bi-arrow-left"></i> 返回首页
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> 添加账号
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> 使用说明</h5>
+            </div>
+            <div class="card-body">
+                <h6>如何获取Cookie：</h6>
+                <ol>
+                    <li>登录夸克网盘网页版</li>
+                    <li>按F12打开开发者工具</li>
+                    <li>切换到Application/应用标签</li>
+                    <li>在左侧选择Cookies → https://pan.quark.cn</li>
+                    <li>找到名为"token"的Cookie，复制其值</li>
+                </ol>
+                
+                <h6>注意事项：</h6>
+                <ul>
+                    <li>Cookie是敏感信息，请妥善保管</li>
+                    <li>定时任务表达式使用标准Cron格式</li>
+                    <li>通知功能（钉钉/Telegram）为可选配置</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

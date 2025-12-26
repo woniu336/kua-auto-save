@@ -1,0 +1,676 @@
+{% extends "base.html" %}
+
+{% block title %}{{ account.name }} - 账号详情{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-person-badge"></i> 账号信息: {{ account.name }}</span>
+                <div class="btn-group">
+                    <a href="{{ url_for('index') }}" class="btn btn-sm btn-secondary">
+                        <i class="bi bi-arrow-left"></i> 返回
+                    </a>
+                    <a href="{{ url_for('add_task', account_id=account_id) }}" class="btn btn-sm btn-success">
+                        <i class="bi bi-plus-circle"></i> 添加任务
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>基本信息</h5>
+                        <table class="table table-sm">
+                            <tr>
+                                <th width="30%">账号名称:</th>
+                                <td>{{ account.name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Cookie:</th>
+                                <td>
+                                    <code class="text-truncate d-block" style="max-width: 300px;" 
+                                          title="{{ account.cookie }}">
+                                        {{ account.cookie[:30] }}...
+                                    </code>
+                                    <small class="text-muted">点击查看完整内容</small>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>定时任务:</th>
+                                <td>
+                                    {% if account.crontab %}
+                                        <code>{{ account.crontab }}</code>
+                                    {% else %}
+                                        <span class="text-muted">未设置</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </table>
+                        
+                        <!-- 账号操作按钮组 -->
+                        <div class="mt-4">
+                            <h5>账号操作</h5>
+                            <div class="d-grid gap-2">
+                                <a href="{{ url_for('edit_account', account_id=account_id) }}" class="btn btn-warning">
+                                    <i class="bi bi-pencil"></i> 编辑账号设置
+                                </a>
+                                <form action="{{ url_for('execute_account_tasks', account_id=account_id) }}" method="POST" class="d-grid">
+                                    <button type="submit" class="btn btn-success" onclick="return confirm('确定要立即执行这个账号的所有任务吗？')">
+                                        <i class="bi bi-play-circle"></i> 立即执行任务
+                                    </button>
+                                </form>
+                                <form action="{{ url_for('delete_account', account_id=account_id) }}" method="POST" class="d-grid">
+                                    <input type="hidden" name="confirm" value="yes">
+                                    <button type="submit" class="btn btn-danger" onclick="return confirm('确定要删除这个账号吗？这将删除所有相关任务！')">
+                                        <i class="bi bi-trash"></i> 删除账号
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>通知配置</h5>
+                        <table class="table table-sm">
+                            <tr>
+                                <th width="40%">钉钉Token:</th>
+                                <td>
+                                    {% if account.dd_bot_token %}
+                                        <code>{{ account.dd_bot_token[:20] }}...</code>
+                                    {% else %}
+                                        <span class="text-muted">未配置</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>钉钉Secret:</th>
+                                <td>
+                                    {% if account.dd_bot_secret %}
+                                        <code>{{ account.dd_bot_secret[:20] }}...</code>
+                                    {% else %}
+                                        <span class="text-muted">未配置</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Telegram Token:</th>
+                                <td>
+                                    {% if account.tg_bot_token %}
+                                        <code>{{ account.tg_bot_token[:20] }}...</code>
+                                    {% else %}
+                                        <span class="text-muted">未配置</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Telegram User ID:</th>
+                                <td>
+                                    {% if account.tg_user_id %}
+                                        {{ account.tg_user_id }}
+                                    {% else %}
+                                        <span class="text-muted">未配置</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </table>
+                        
+                        <!-- 任务统计 -->
+                        <div class="mt-4">
+                            <h5>任务统计</h5>
+                            <div class="card">
+                                <div class="card-body">
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item d-flex justify-content-between">
+                                            <span>任务总数:</span>
+                                            <strong>{{ tasks|length }}</strong>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between">
+                                            <span>每日运行:</span>
+                                            <span>
+                                                {% set daily_tasks = namespace(value=0) %}
+                                                {% for task in tasks %}
+                                                    {% if task.runweek|length == 7 %}
+                                                        {% set daily_tasks.value = daily_tasks.value + 1 %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                                {{ daily_tasks.value }} 个
+                                            </span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between">
+                                            <span>忽略扩展名:</span>
+                                            <span>
+                                                {% set ignore_ext_tasks = namespace(value=0) %}
+                                                {% for task in tasks %}
+                                                    {% if task.ignore_extension %}
+                                                        {% set ignore_ext_tasks.value = ignore_ext_tasks.value + 1 %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                                {{ ignore_ext_tasks.value }} 个
+                                            </span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between">
+                                            <span>最后更新:</span>
+                                            <span class="text-muted">刚刚</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row" id="tasks">
+    <div class="col-12">
+        <!-- 标签页导航 -->
+        <ul class="nav nav-tabs mb-3" id="accountTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="tasks-tab" data-bs-toggle="tab" data-bs-target="#tasks-pane" type="button" role="tab" aria-controls="tasks-pane" aria-selected="true">
+                    <i class="bi bi-list-task"></i> 任务列表 ({{ tasks|length }} 个)
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="invalid-links-tab" data-bs-toggle="tab" data-bs-target="#invalid-links-pane" type="button" role="tab" aria-controls="invalid-links-pane" aria-selected="false">
+                    <i class="bi bi-link-45deg"></i> 失效链接
+                    {% if invalid_links_data %}
+                        <span class="badge bg-danger ms-1">{{ invalid_links_data.invalid_count }}</span>
+                    {% else %}
+                        <span class="badge bg-secondary ms-1">0</span>
+                    {% endif %}
+                </button>
+            </li>
+        </ul>
+        
+        <!-- 标签页内容 -->
+        <div class="tab-content" id="accountTabsContent">
+            <!-- 任务列表标签页 -->
+            <div class="tab-pane fade show active" id="tasks-pane" role="tabpanel" aria-labelledby="tasks-tab" tabindex="0">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-list-task"></i> 任务列表 ({{ tasks|length }} 个)</span>
+                        <div class="btn-group">
+                            <a href="{{ url_for('add_task', account_id=account_id) }}" class="btn btn-sm btn-success">
+                                <i class="bi bi-plus-circle"></i> 添加任务
+                            </a>
+                            <a href="{{ url_for('batch_add_tasks') }}" class="btn btn-sm btn-info">
+                                <i class="bi bi-file-earmark-plus"></i> 批量添加
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                {% if tasks %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>序号</th>
+                                    <th>任务名称</th>
+                                    <th>保存路径</th>
+                                    <th>分享链接</th>
+                                    <th>运行周期</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in tasks %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>
+                                        <strong>{{ task.taskname }}</strong>
+                                        {% if task.ignore_extension %}
+                                            <span class="badge bg-warning ms-1">忽略扩展名</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <code class="text-truncate d-block" style="max-width: 150px;" 
+                                              title="{{ task.savepath }}">
+                                            {{ task.savepath }}
+                                        </code>
+                                    </td>
+                                    <td>
+                                        <a href="{{ task.shareurl }}" target="_blank" 
+                                           class="text-truncate d-block" style="max-width: 200px;">
+                                            {{ task.shareurl }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if task.runweek|length == 7 %}
+                                            <span class="badge bg-success">每天</span>
+                                        {% else %}
+                                            <span class="badge bg-info">
+                                                {{ task.runweek|join(',') }} 天
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('edit_task', account_id=account_id, task_id=loop.index0) }}" 
+                                               class="btn btn-warning">
+                                                <i class="bi bi-pencil"></i> 编辑
+                                            </a>
+                                            <a href="{{ url_for('delete_task', account_id=account_id, task_id=loop.index0) }}" 
+                                               class="btn btn-danger"
+                                               onclick="return confirm('确定要删除这个任务吗？')">
+                                                <i class="bi bi-trash"></i> 删除
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox display-1 text-muted"></i>
+                        <h4 class="mt-3">暂无任务</h4>
+                        <p class="text-muted">这个账号还没有添加任何任务</p>
+                        <div class="mt-3">
+                            <a href="{{ url_for('add_task', account_id=account_id) }}" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> 添加第一个任务
+                            </a>
+                            <a href="{{ url_for('batch_add_tasks') }}" class="btn btn-success ms-2">
+                                <i class="bi bi-file-earmark-plus"></i> 批量添加任务
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 失效链接标签页 -->
+            <div class="tab-pane fade" id="invalid-links-pane" role="tabpanel" aria-labelledby="invalid-links-tab" tabindex="0">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+<span><i class="bi bi-link-45deg"></i> 失效链接检测<span style="color: #ebf3ef; font-size: 0.9em;">（提示:检测完成后刷新页面,检测结果会缓存3小时）</span></span>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-primary" id="checkInvalidLinksBtn">
+                                <i class="bi bi-arrow-clockwise"></i> 手动检查
+                            </button>
+                            <button type="button" class="btn btn-sm btn-info" id="refreshInvalidLinksBtn">
+                                <i class="bi bi-arrow-repeat"></i> 刷新
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- 失效链接统计 -->
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">任务总数</h5>
+                                        <p class="card-text display-6">{{ tasks|length }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">失效链接</h5>
+                                        <p class="card-text display-6 text-danger" id="invalidCount">
+                                            {% if invalid_links_data %}
+                                                {{ invalid_links_data.invalid_count }}
+                                            {% else %}
+                                                0
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">有效链接</h5>
+                                        <p class="card-text display-6 text-success" id="validCount">
+                                            {% if invalid_links_data %}
+                                                {{ invalid_links_data.total_tasks - invalid_links_data.invalid_count }}
+                                            {% else %}
+                                                {{ tasks|length }}
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 失效链接列表 -->
+                        <div id="invalidLinksContainer">
+                            {% if invalid_links_data and invalid_links_data.invalid_links %}
+                                <div class="alert alert-warning">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                    检测到 {{ invalid_links_data.invalid_count }} 个失效链接
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>序号</th>
+                                                <th>任务名称</th>
+                                                <th>分享链接</th>
+                                                <th>操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for link in invalid_links_data.invalid_links %}
+                                            <tr>
+                                                <td>{{ loop.index }}</td>
+                                                <td>
+                                                    <strong class="text-truncate d-block" style="max-width: 150px;" title="{{ link.taskname }}">
+                                                        {{ link.taskname }}
+                                                    </strong>
+                                                </td>
+                                                <td>
+                                                    <a href="{{ link.shareurl }}" target="_blank" 
+                                                       class="text-truncate d-block" style="max-width: 200px;">
+                                                        {{ link.shareurl }}
+                                                    </a>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <a href="{{ url_for('edit_task', account_id=account_id, task_id=link.task_index) }}" 
+                                                           class="btn btn-warning">
+                                                            <i class="bi bi-pencil"></i> 编辑
+                                                        </a>
+                                                        <a href="{{ url_for('delete_task', account_id=account_id, task_id=link.task_index) }}" 
+                                                           class="btn btn-danger"
+                                                           onclick="return confirm('确定要删除这个任务吗？')">
+                                                            <i class="bi bi-trash"></i> 删除
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="bi bi-check-circle display-1 text-success"></i>
+                                    <h4 class="mt-3">没有检测到失效链接</h4>
+                                    <p class="text-muted">所有链接都有效，或者尚未进行链接检测</p>
+                                    <div class="mt-3">
+                                        <button type="button" class="btn btn-primary" id="checkInvalidLinksBtn2">
+                                            <i class="bi bi-arrow-clockwise"></i> 手动检查链接
+                                        </button>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- 缓存信息 -->
+                        <div class="mt-4">
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i>
+                                <strong>智能缓存说明：</strong>
+                                <ul class="mb-0 mt-2">
+                                    <li>链接检测结果会缓存5分钟，避免频繁检测影响性能</li>
+                                    <li>当任务被添加、编辑或删除时，缓存会自动清除</li>
+                                    <li>点击"手动检查"按钮会立即重新检测所有链接</li>
+                                    <li>点击"刷新"按钮会重新加载缓存数据</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for invalid links checking -->
+<script>
+(function() {
+    'use strict';
+    
+    // 获取按钮元素
+    var checkBtn = document.getElementById('checkInvalidLinksBtn');
+    var checkBtn2 = document.getElementById('checkInvalidLinksBtn2');
+    var refreshBtn = document.getElementById('refreshInvalidLinksBtn');
+    
+    // 显示Toast消息的辅助函数
+    function showToast(message, type) {
+        // 创建Toast容器（如果不存在）
+        var toastContainer = document.getElementById('toastContainer');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toastContainer';
+            toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+            document.body.appendChild(toastContainer);
+        }
+        
+        // 创建Toast元素
+        var toastId = 'toast-' + Date.now();
+        var toastHtml = [
+            '<div id="' + toastId + '" class="toast" role="alert" aria-live="assertive" aria-atomic="true">',
+            '<div class="toast-header">',
+            '<i class="bi bi-info-circle me-2 text-' + type + '"></i>',
+            '<strong class="me-auto">系统提示</strong>',
+            '<small>刚刚</small>',
+            '<button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>',
+            '</div>',
+            '<div class="toast-body">',
+            message,
+            '</div>',
+            '</div>'
+        ].join('');
+        
+        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+        
+        // 显示Toast
+        var toastElement = document.getElementById(toastId);
+        if (toastElement) {
+            var toast = new bootstrap.Toast(toastElement);
+            toast.show();
+            
+            // 自动移除Toast
+            setTimeout(function() {
+                if (toastElement && toastElement.parentNode) {
+                    toastElement.parentNode.removeChild(toastElement);
+                }
+            }, 5000);
+        }
+    }
+    
+    // 手动检查失效链接
+    function checkInvalidLinks() {
+        if (checkBtn) checkBtn.disabled = true;
+        if (checkBtn2) checkBtn2.disabled = true;
+        if (refreshBtn) refreshBtn.disabled = true;
+        
+        // 显示加载状态
+        var container = document.getElementById('invalidLinksContainer');
+        if (container) {
+            container.innerHTML = [
+                '<div class="text-center py-5">',
+                '<div class="spinner-border text-primary" role="status">',
+                '<span class="visually-hidden">加载中...</span>',
+                '</div>',
+                '<h4 class="mt-3">正在检查链接...</h4>',
+                '<p class="text-muted">这可能需要一些时间，请稍候</p>',
+                '</div>'
+            ].join('');
+        }
+        
+        // 确保缓存说明部分可见
+        var cacheInfo = document.querySelector('.alert.alert-info');
+        if (cacheInfo && cacheInfo.parentElement && cacheInfo.parentElement.parentElement) {
+            cacheInfo.parentElement.parentElement.style.display = 'block';
+        }
+        
+        // 发送AJAX请求检查链接
+        fetch('/api/account/{{ account_id }}/check_invalid_links', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            // 更新页面内容
+            updateInvalidLinksDisplay(data);
+            
+            // 重新启用按钮
+            if (checkBtn) checkBtn.disabled = false;
+            if (checkBtn2) checkBtn2.disabled = false;
+            if (refreshBtn) refreshBtn.disabled = false;
+            
+            // 确保切换到失效链接标签页
+            var invalidLinksTab = document.getElementById('invalid-links-tab');
+            if (invalidLinksTab && !invalidLinksTab.classList.contains('active')) {
+                var tab = new bootstrap.Tab(invalidLinksTab);
+                tab.show();
+            }
+        })
+        .catch(function(error) {
+            console.error('检查链接失败:', error);
+            alert('检查链接失败，请稍后重试');
+            
+            // 重新启用按钮
+            if (checkBtn) checkBtn.disabled = false;
+            if (checkBtn2) checkBtn2.disabled = false;
+            if (refreshBtn) refreshBtn.disabled = false;
+        });
+    }
+    
+    // 刷新失效链接数据
+    function refreshInvalidLinks() {
+        // 发送AJAX请求获取最新数据
+        fetch('/api/account/{{ account_id }}/invalid_links')
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            // 更新页面内容
+            updateInvalidLinksDisplay(data);
+        })
+        .catch(function(error) {
+            console.error('刷新数据失败:', error);
+            alert('刷新数据失败，请稍后重试');
+        });
+    }
+    
+    // 更新失效链接显示
+    function updateInvalidLinksDisplay(data) {
+        var container = document.getElementById('invalidLinksContainer');
+        var invalidCountElem = document.getElementById('invalidCount');
+        var validCountElem = document.getElementById('validCount');
+        
+        if (!container) return;
+        
+        // 更新统计数字
+        if (invalidCountElem) {
+            invalidCountElem.textContent = data.invalid_count || 0;
+        }
+        
+        if (validCountElem) {
+            var totalTasks = data.total_tasks || {{ tasks|length }};
+            var invalidCount = data.invalid_count || 0;
+            validCountElem.textContent = totalTasks - invalidCount;
+        }
+        
+        // 更新标签页标题上的失效链接数量
+        var invalidLinksTabBadge = document.querySelector('#invalid-links-tab .badge');
+        if (invalidLinksTabBadge) {
+            if (data.invalid_count > 0) {
+                invalidLinksTabBadge.textContent = data.invalid_count;
+                invalidLinksTabBadge.className = 'badge bg-danger ms-1';
+            } else {
+                invalidLinksTabBadge.textContent = '0';
+                invalidLinksTabBadge.className = 'badge bg-secondary ms-1';
+            }
+        }
+        
+        // 更新失效链接容器内容
+        if (data.invalid_links && data.invalid_links.length > 0) {
+            var html = [
+                '<div class="alert alert-warning">',
+                '<i class="bi bi-exclamation-triangle"></i>',
+                '检测到 ' + data.invalid_count + ' 个失效链接',
+                '</div>',
+                '<div class="table-responsive">',
+                '<table class="table table-hover">',
+                '<thead>',
+                '<tr>',
+                '<th>序号</th>',
+                '<th>任务名称</th>',
+                '<th>分享链接</th>',
+                '<th>操作</th>',
+                '</tr>',
+                '</thead>',
+                '<tbody>'
+            ];
+            
+            data.invalid_links.forEach(function(link, index) {
+                html.push([
+                    '<tr>',
+                    '<td>' + (index + 1) + '</td>',
+                    '<td>',
+                    '<strong class="text-truncate d-block" style="max-width: 150px;" title="' + link.taskname + '">',
+                    link.taskname,
+                    '</strong>',
+                    '</td>',
+                    '<td>',
+                    '<a href="' + link.shareurl + '" target="_blank" class="text-truncate d-block" style="max-width: 200px;">',
+                    link.shareurl,
+                    '</a>',
+                    '</td>',
+                    '<td>',
+                    '<div class="btn-group btn-group-sm">',
+                    '<a href="/account/' + {{ account_id }} + '/task/' + link.task_index + '/edit" class="btn btn-warning">',
+                    '<i class="bi bi-pencil"></i> 编辑',
+                    '</a>',
+                    '<a href="/account/' + {{ account_id }} + '/task/' + link.task_index + '/delete" class="btn btn-danger" onclick="return confirm(\'确定要删除这个任务吗？\')">',
+                    '<i class="bi bi-trash"></i> 删除',
+                    '</a>',
+                    '</div>',
+                    '</td>',
+                    '</tr>'
+                ].join(''));
+            });
+            
+            html.push('</tbody></table></div>');
+            container.innerHTML = html.join('');
+        } else {
+            container.innerHTML = [
+                '<div class="text-center py-5">',
+                '<i class="bi bi-check-circle display-1 text-success"></i>',
+                '<h4 class="mt-3">没有检测到失效链接</h4>',
+                '<p class="text-muted">所有链接都有效，或者尚未进行链接检测</p>',
+                '<div class="mt-3">',
+                '<button type="button" class="btn btn-primary" id="checkInvalidLinksBtn2">',
+                '<i class="bi bi-arrow-clockwise"></i> 手动检查链接',
+                '</button>',
+                '</div>',
+                '</div>'
+            ].join('');
+            
+            // 重新绑定按钮事件
+            var newCheckBtn2 = document.getElementById('checkInvalidLinksBtn2');
+            if (newCheckBtn2) {
+                newCheckBtn2.addEventListener('click', checkInvalidLinks);
+            }
+        }
+    }
+    
+    // 绑定按钮事件
+    if (checkBtn) {
+        checkBtn.addEventListener('click', checkInvalidLinks);
+    }
+    
+    if (checkBtn2) {
+        checkBtn2.addEventListener('click', checkInvalidLinks);
+    }
+    
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', refreshInvalidLinks);
+    }
+})();
+</script>
+{% endblock %}

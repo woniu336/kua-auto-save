@@ -1,0 +1,19 @@
+{
+  "log_cleaner_config": {
+    "log_path": "simple_admin/quark_save.log",
+    "clean_mode": "truncate",
+    "max_size_mb": 10.0,
+    "backup": false,
+    "schedule": {
+      "windows": {
+        "task_name": "CleanQuarkLog",
+        "frequency": "daily",
+        "time": "03:00"
+      },
+      "linux": {
+        "cron_schedule": "0 3 * * *"
+      }
+    }
+  },
+  "description": "夸克日志清理配置 - 超过10MB清空日志，不备份"
+}

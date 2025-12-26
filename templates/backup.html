@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}备份管理 - 夸克网盘任务管理系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="bi bi-archive"></i> 备份管理</h4>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-4">
+                    <a href="{{ url_for('create_backup') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> 创建新备份
+                    </a>
+                </div>
+                
+                {% if backups %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>文件名</th>
+                                <th>大小</th>
+                                <th>修改时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for backup in backups %}
+                            <tr>
+                                <td>
+                                    <i class="bi bi-file-earmark-text"></i>
+                                    {{ backup.filename }}
+                                </td>
+                                <td>{{ backup.size }}</td>
+                                <td>{{ backup.modified }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="{{ url_for('restore_backup', backup_path=backup.path) }}" 
+                                           class="btn btn-outline-success"
+                                           onclick="return confirm('确定要恢复这个备份吗？当前配置将被覆盖！');">
+                                            <i class="bi bi-arrow-counterclockwise"></i> 恢复
+                                        </a>
+                                        <a href="{{ url_for('download_backup', filename=backup.filename) }}" 
+                                           class="btn btn-outline-info">
+                                            <i class="bi bi-download"></i> 下载
+                                        </a>
+                                        <a href="{{ url_for('delete_backup', filename=backup.filename) }}" 
+                                           class="btn btn-outline-danger"
+                                           onclick="return confirm('确定要删除这个备份吗？此操作不可撤销！');">
+                                            <i class="bi bi-trash"></i> 删除
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> 暂无备份文件
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-upload"></i> 上传备份文件</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('upload_backup') }}" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="backup_file" class="form-label">选择备份文件</label>
+                        <input type="file" class="form-control" id="backup_file" name="backup_file" accept=".json" required>
+                        <div class="form-text">仅支持JSON格式的配置文件</div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-info">
+                            <i class="bi bi-upload"></i> 上传备份
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> 备份说明</h5>
+            </div>
+            <div class="card-body">
+                <h6>备份策略：</h6>
+                <ul>
+                    <li>系统会自动在以下情况创建备份：
+                        <ul>
+                            <li>添加新账号时</li>
+                            <li>修改账号配置时</li>
+                            <li>手动创建备份时</li>
+                        </ul>
+                    </li>
+                    <li>备份文件保存在 <code>backups/</code> 目录中</li>
+                    <li>备份文件名包含时间戳，格式：<code>quark_config_YYYYMMDD_HHMMSS.json</code></li>
+                </ul>
+                
+                <h6>恢复注意事项：</h6>
+                <ul>
+                    <li>恢复备份会覆盖当前配置文件</li>
+                    <li>恢复前建议先创建当前配置的备份</li>
+                    <li>恢复后需要刷新页面查看最新配置</li>
+                </ul>
+                
+                <h6>建议：</h6>
+                <ul>
+                    <li>定期创建备份</li>
+                    <li>重要修改前创建备份</li>
+                    <li>保留最近7天的备份文件</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

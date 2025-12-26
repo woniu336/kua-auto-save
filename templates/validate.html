@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}配置验证 - 夸克网盘任务管理系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h4 class="mb-0"><i class="bi bi-shield-check"></i> 配置验证</h4>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-4">
+                    <a href="{{ url_for('validate') }}" class="btn btn-warning">
+                        <i class="bi bi-arrow-repeat"></i> 重新验证
+                    </a>
+                </div>
+                
+                {% if validation_result %}
+                <div class="alert alert-{{ 'success' if validation_result.is_valid else 'danger' }}">
+                    <h5>
+                        <i class="bi bi-{{ 'check-circle' if validation_result.is_valid else 'x-circle' }}"></i>
+                        {{ '配置验证通过' if validation_result.is_valid else '配置验证失败' }}
+                    </h5>
+                    <p class="mb-0">
+                        <strong>JSON格式：</strong>
+                        <span class="badge bg-{{ 'success' if validation_result.json_valid else 'danger' }}">
+                            {{ '有效' if validation_result.json_valid else '无效' }}
+                        </span>
+                    </p>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="mb-0"><i class="bi bi-people"></i> 账号统计</h5>
+                            </div>
+                            <div class="card-body">
+                                <p><strong>账号总数：</strong> {{ validation_result.account_count }}</p>
+                                <p><strong>任务总数：</strong> {{ validation_result.total_tasks }}</p>
+                                
+                                {% if validation_result.account_count > 0 %}
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>账号名称</th>
+                                                <th>任务数量</th>
+                                                <th>状态</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for account in validation_result.accounts %}
+                                            <tr>
+                                                <td>{{ account.name }}</td>
+                                                <td>{{ account.task_count }}</td>
+                                                <td>
+                                                    <span class="badge bg-{{ 'success' if account.valid else 'danger' }}">
+                                                        {{ '有效' if account.valid else '无效' }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-{{ 'success' if validation_result.required_fields_valid else 'danger' }} text-white">
+                                <h5 class="mb-0"><i class="bi bi-list-check"></i> 必需字段检查</h5>
+                            </div>
+                            <div class="card-body">
+                                {% if validation_result.required_fields_valid %}
+                                <div class="alert alert-success">
+                                    <i class="bi bi-check-circle"></i> 所有必需字段检查通过
+                                </div>
+                                {% else %}
+                                <div class="alert alert-danger">
+                                    <i class="bi bi-exclamation-triangle"></i> 发现必需字段问题
+                                </div>
+                                {% endif %}
+                                
+                                {% if validation_result.field_issues %}
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>账号</th>
+                                                <th>问题</th>
+                                                <th>字段</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for issue in validation_result.field_issues %}
+                                            <tr>
+                                                <td>{{ issue.account }}</td>
+                                                <td>{{ issue.issue }}</td>
+                                                <td>{{ issue.field }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-4">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0"><i class="bi bi-gear"></i> 配置详情</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>检查项</th>
+                                        <th>结果</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>JSON格式有效性</td>
+                                        <td>
+                                            <span class="badge bg-{{ 'success' if validation_result.json_valid else 'danger' }}">
+                                                {{ '通过' if validation_result.json_valid else '失败' }}
+                                            </span>
+                                        </td>
+                                        <td>配置文件必须是有效的JSON格式</td>
+                                    </tr>
+                                    <tr>
+                                        <td>必需字段检查</td>
+                                        <td>
+                                            <span class="badge bg-{{ 'success' if validation_result.required_fields_valid else 'danger' }}">
+                                                {{ '通过' if validation_result.required_fields_valid else '失败' }}
+                                            </span>
+                                        </td>
+                                        <td>每个账号必须包含名称和Cookie字段</td>
+                                    </tr>
+                                    <tr>
+                                        <td>账号数量</td>
+                                        <td>
+                                            <span class="badge bg-{{ 'success' if validation_result.account_count > 0 else 'warning' }}">
+                                                {{ validation_result.account_count }}
+                                            </span>
+                                        </td>
+                                        <td>配置文件中包含的账号数量</td>
+                                    </tr>
+                                    <tr>
+                                        <td>任务总数</td>
+                                        <td>
+                                            <span class="badge bg-info">{{ validation_result.total_tasks }}</span>
+                                        </td>
+                                        <td>所有账号的任务总数</td>
+                                    </tr>
+                                    <tr>
+                                        <td>备份目录</td>
+                                        <td>
+                                            <span class="badge bg-{{ 'success' if validation_result.backup_dir_exists else 'warning' }}">
+                                                {{ '存在' if validation_result.backup_dir_exists else '不存在' }}
+                                            </span>
+                                        </td>
+                                        <td>备份目录是否存在</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if validation_result.suggestions %}
+                <div class="card mt-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="bi bi-lightbulb"></i> 改进建议</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group">
+                            {% for suggestion in validation_result.suggestions %}
+                            <li class="list-group-item">
+                                <i class="bi bi-arrow-right-circle text-info"></i>
+                                {{ suggestion }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> 点击"重新验证"按钮开始验证配置
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> 修复工具</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h5><i class="bi bi-file-earmark-text text-primary"></i></h5>
+                                <h6>修复JSON格式</h6>
+                                <p class="text-muted small">自动修复JSON格式错误</p>
+                                <a href="{{ url_for('fix_json') }}" class="btn btn-outline-primary btn-sm"
+                                   onclick="return confirm('确定要修复JSON格式吗？');">
+                                    修复
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h5><i class="bi bi-person-check text-success"></i></h5>
+                                <h6>修复账号字段</h6>
+                                <p class="text-muted small">修复缺失的必需字段</p>
+                                <a href="{{ url_for('fix_account') }}" class="btn btn-outline-success btn-sm"
+                                   onclick="return confirm('确定要修复账号字段吗？');">
+                                    修复
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h5><i class="bi bi-folder-plus text-info"></i></h5>
+                                <h6>创建备份目录</h6>
+                                <p class="text-muted small">创建缺失的备份目录</p>
+                                <a href="{{ url_for('create_backup') }}" class="btn btn-outline-info btn-sm">
+                                    创建
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

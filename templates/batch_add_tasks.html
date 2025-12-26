@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}批量添加任务 - 夸克网盘任务管理系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0"><i class="bi bi-upload"></i> 批量添加任务</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('batch_add_tasks') }}">
+                    <div class="mb-3">
+                        <label for="account_id" class="form-label">选择目标账号</label>
+                        <select class="form-select" id="account_id" name="account_id" required>
+                            <option value="">请选择账号...</option>
+                            {% for account in accounts %}
+                            <option value="{{ loop.index0 }}">{{ account.name }} ({{ account.tasklist|length }}个任务)</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="task_content" class="form-label">任务内容</label>
+                        <textarea class="form-control" id="task_content" name="task_content" rows="10" required 
+                                  placeholder="请输入任务列表，每行一个任务，格式为：任务名称=分享链接
+例如：
+电影合集=https://pan.quark.cn/s/xxxxxxxx#/list/share=/Movies/电影合集
+电视剧=https://pan.quark.cn/s/yyyyyyyy#/list/share=/TV/电视剧"></textarea>
+                        <div class="form-text">
+                            格式说明：任务名称=分享链接<br>
+                            如果链接包含#/list/share=路径，系统会自动解析保存路径<br>
+                            如果链接不包含路径，保存路径将使用任务名称
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary me-md-2">
+                            <i class="bi bi-arrow-left"></i> 返回首页
+                        </a>
+                        <button type="submit" class="btn btn-info">
+                            <i class="bi bi-upload"></i> 批量添加
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-file-earmark-arrow-up"></i> 从文件导入</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('batch_add_tasks') }}" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="account_id_file" class="form-label">选择目标账号</label>
+                        <select class="form-select" id="account_id_file" name="account_id" required>
+                            <option value="">请选择账号...</option>
+                            {% for account in accounts %}
+                            <option value="{{ loop.index0 }}">{{ account.name }} ({{ account.tasklist|length }}个任务)</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="task_file" class="form-label">选择任务文件</label>
+                        <input type="file" class="form-control" id="task_file" name="task_file" accept=".txt,.csv">
+                        <div class="form-text">支持.txt或.csv文件，每行一个任务，格式同上</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-file-earmark-arrow-up"></i> 从文件导入
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> 使用说明</h5>
+            </div>
+            <div class="card-body">
+                <h6>任务文件格式示例：</h6>
+                <pre class="bg-light p-3 border rounded">
+电影合集=https://pan.quark.cn/s/xxxxxxxx#/list/share=/Movies/电影合集
+电视剧=https://pan.quark.cn/s/yyyyyyyy#/list/share=/TV/电视剧
+纪录片=https://pan.quark.cn/s/zzzzzzzz#/list/share=/Documentary/纪录片
+软件工具=https://pan.quark.cn/s/aaaaaaaa#/list/share=/Software/工具
+电子书=https://pan.quark.cn/s/bbbbbbbb#/list/share=/Books/电子书</pre>
+                
+                <h6>注意事项：</h6>
+                <ul>
+                    <li>每行只能包含一个任务</li>
+                    <li>任务名称和链接之间用等号(=)分隔</li>
+                    <li>链接可以是完整分享链接或包含路径的链接</li>
+                    <li>系统会自动处理#/list/share=后面的路径作为保存路径</li>
+                    <li>如果链接不包含路径，保存路径将使用任务名称</li>
+                    <li>批量添加前建议先测试单个任务是否正常</li>
+                </ul>
+                
+                <h6>推荐的文件格式：</h6>
+                <ul>
+                    <li>纯文本文件(.txt)：每行一个任务</li>
+                    <li>CSV文件(.csv)：可以使用Excel编辑，保存为CSV格式</li>
+                    <li>文件编码建议使用UTF-8</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

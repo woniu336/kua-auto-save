@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>夸克自动转存 - 多Cookie后台</title>
+    <!-- Favicon -->
+    <link rel="icon" href="./static/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-top: 20px;
+            padding-bottom: 50px;
+        }
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid rgba(0,0,0,.125);
+            font-weight: 600;
+        }
+        .btn-group-sm > .btn, .btn-sm {
+            padding: .25rem .5rem;
+            font-size: .875rem;
+            line-height: 1.5;
+        }
+        .status-idle { color: #6c757d; }
+        .status-running { color: #007bff; }
+        .status-completed { color: #28a745; }
+        .status-error { color: #dc3545; }
+        .log-output {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: .25rem;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .link-item {
+            border: 1px solid #dee2e6;
+            border-radius: .25rem;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: white;
+        }
+        .link-item:hover {
+            background-color: #f8f9fa;
+        }
+        .form-control-sm {
+            height: calc(1.5em + .5rem + 2px);
+            padding: .25rem .5rem;
+            font-size: .875rem;
+            line-height: 1.5;
+        }
+        .main-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .pagination-container {
+            margin-top: 20px;
+        }
+        .nav-tabs {
+            margin-bottom: 20px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .nav-tabs .nav-link {
+            color: #495057;
+            border: 1px solid transparent;
+            border-top-left-radius: .25rem;
+            border-top-right-radius: .25rem;
+        }
+        .nav-tabs .nav-link:hover {
+            border-color: #e9ecef #e9ecef #dee2e6;
+        }
+        .nav-tabs .nav-link.active {
+            color: #007bff;
+            background-color: #fff;
+            border-color: #dee2e6 #dee2e6 #fff;
+        }
+        .tab-content {
+            background-color: #fff;
+            border: 1px solid #dee2e6;
+            border-top: none;
+            border-radius: 0 0 .25rem .25rem;
+            padding: 20px;
+        }
+        .account-sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            width: 200px;
+            background-color: #343a40;
+            color: white;
+            padding: 20px 10px;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+        .account-sidebar h5 {
+            color: #adb5bd;
+            font-size: 14px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+        .account-list {
+            margin-bottom: 20px;
+        }
+        .account-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .account-item:hover {
+            background-color: #495057;
+        }
+        .account-item.active {
+            background-color: #007bff;
+        }
+        .account-item.active .account-name {
+            color: #ffffff; /* 白色 */
+            font-weight: 600;
+        }
+        .account-name {
+            flex-grow: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .account-delete-btn {
+            color: #dc3545;
+            background: none;
+            border: none;
+            padding: 0;
+            font-size: 12px;
+            opacity: 0.7;
+        }
+        .account-delete-btn:hover {
+            opacity: 1;
+        }
+.account-actions {
+    display: flex;
+}
+.account-edit-btn {
+    color: #ff6b35;
+    background: none;
+    border: none;
+    padding: 4px 6px;
+    font-size: 16px;
+    opacity: 0.9;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+.account-edit-btn:hover {
+    opacity: 1;
+    color: #ff4500;
+    background-color: rgba(255, 107, 53, 0.1);
+}
+        .add-account-btn {
+            width: 100%;
+            margin-top: 10px;
+        }
+        .content-wrapper {
+            margin-left: 200px;
+            padding: 0 20px;
+        }
+        .cookie-buttons {
+            margin-bottom: 15px;
+        }
+        .cookie-btn {
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        @media (max-width: 768px) {
+            .account-sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+                margin-bottom: 20px;
+            }
+            .content-wrapper {
+                margin-left: 0;
+            }
+        }
+        
+        /* Toast通知样式修复 */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1050;
+            min-width: 250px;
+            max-width: 350px;
+            border: 1px solid rgba(0,0,0,.1);
+            box-shadow: 0 0.5rem 1rem rgba(0,0,0,.15);
+        }
+        
+        .toast-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid rgba(0,0,0,.05);
+            padding: 0.5rem 0.75rem;
+        }
+        
+        .toast-body {
+            padding: 0.75rem;
+            background-color: white;
+        }
+        
+        /* 确保toast不会出现在侧边栏后面 */
+        .account-sidebar ~ .toast {
+            margin-left: 200px;
+        }
+        
+        @media (max-width: 768px) {
+            .account-sidebar ~ .toast {
+                margin-left: 0;
+            }
+        }
+        
+        /* 修复标题区域布局 - 标题居中，账号按钮在右上角 */
+        .header-container {
+            margin-bottom: 1.5rem;
+            position: relative; /* 为绝对定位的账号按钮提供参考 */
+            text-align: center; /* 标题居中 */
+        }
+        
+        /* 在桌面端 */
+        @media (min-width: 769px) {
+            .header-title {
+                display: inline-block; /* 让标题居中 */
+                max-width: 70%; /* 限制标题宽度，给账号按钮留空间 */
+            }
+            
+            .header-account {
+                position: absolute;
+                top: 0;
+                right: 0;
+                margin-top: 0.5rem; /* 与标题对齐 */
+            }
+        }
+        
+        /* 在移动端 */
+        @media (max-width: 768px) {
+            .header-title {
+                margin-bottom: 1rem;
+                text-align: center;
+            }
+            
+            .header-account {
+                text-align: right;
+                margin-bottom: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Cookie侧边栏 -->
+    <div class="account-sidebar">
+        <h5><i class="bi bi-key"></i> Cookie管理</h5>
+        <div class="account-list" id="cookieList">
+            <!-- Cookie列表将通过JS动态加载 -->
+            <div class="text-center text-muted">
+                <i class="bi bi-arrow-repeat spinner"></i> 加载中...
+            </div>
+        </div>
+        <button class="btn btn-outline-light btn-sm add-account-btn" onclick="addNewCookie()">
+            <i class="bi bi-plus"></i> 添加Cookie
+        </button>
+    </div>
+
+    <!-- 主要内容区域 -->
+    <div class="content-wrapper">
+        <div class="container">
+            <div class="row mb-4">
+                <div class="col">
+                    <div class="header-container">
+                            <div class="header-title">
+                                <h1 class="mb-0"><i class="bi bi-cloud-arrow-down"></i> 夸克自动转存后台</h1>
+                                <p class="text-muted small mb-0 mt-3">当前Cookie: <span id="currentCookieDisplay">Cookie1</span></p>
+                            </div>
+                        <!-- 账号按钮 -->
+                        <div class="header-account">
+                            <div class="dropdown">
+                                <button class="btn btn-outline-primary dropdown-toggle" type="button" id="accountDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <i class="bi bi-person-circle"></i> 账号
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="accountDropdown">
+                                    <a class="dropdown-item" href="#" data-toggle="modal" data-target="#changePasswordModal">
+                                        <i class="bi bi-key"></i> 修改密码
+                                    </a>
+                                    <div class="dropdown-divider"></div>
+                                    <a class="dropdown-item" href="/logout">
+                                        <i class="bi bi-box-arrow-right"></i> 退出登录
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 标签页导航 -->
+            <div class="main-content">
+                <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <a class="nav-link active" id="links-tab" data-toggle="tab" href="#links" role="tab" aria-controls="links" aria-selected="true">
+                            <i class="bi bi-link"></i> 转存内容管理
+                        </a>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <a class="nav-link" id="scripts-tab" data-toggle="tab" href="#scripts" role="tab" aria-controls="scripts" aria-selected="false">
+                            <i class="bi bi-play-circle"></i> 执行转存
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- 标签页内容 -->
+                <div class="tab-content" id="mainTabsContent">
+                    <!-- 转存内容管理标签页 -->
+                    <div class="tab-pane fade show active" id="links" role="tabpanel" aria-labelledby="links-tab">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-link"></i> 转存内容管理</span>
+                                <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#addLinkModal">
+                                    <i class="bi bi-plus"></i> 添加
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div id="linksList">
+                                    <!-- 链接列表将通过JS动态加载 -->
+                                    <div class="text-center text-muted">
+                                        <i class="bi bi-arrow-repeat spinner"></i> 加载中...
+                                    </div>
+                                </div>
+                                
+                                <!-- 分页控件 -->
+                                <div class="pagination-container" id="paginationContainer" style="display: none;">
+                                    <nav aria-label="转存链接分页">
+                                        <ul class="pagination justify-content-center pagination-sm" id="pagination">
+                                            <!-- 分页按钮将通过JS动态生成 -->
+                                        </ul>
+                                    </nav>
+                                    <div class="text-center text-muted small" id="pageInfo">
+                                        <!-- 页码信息将通过JS动态生成 -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 执行转存标签页 -->
+                    <div class="tab-pane fade" id="scripts" role="tabpanel" aria-labelledby="scripts-tab">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-play-circle"></i> 执行转存
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-outline-success" onclick="runScript('quark_auto_save.py')">
+                                                <i class="bi bi-cloud-arrow-down"></i> 执行转存
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span>运行状态: <span id="scriptStatus" class="status-idle">空闲</span></span>
+                                        <small id="lastRunTime" class="text-muted"></small>
+                                    </div>
+                                    <div class="mt-2">
+                                        <small class="text-muted">当前Cookie: <span id="currentCookieForScript">Cookie1</span></small>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>运行日志:</label>
+                                    <div class="log-output" id="scriptOutput">
+                                        暂无运行日志
+                                    </div>
+                                </div>
+                                
+                                <div class="alert alert-info small mt-3">
+                                    <i class="bi bi-info-circle"></i> 提示：执行转存将使用当前选中的Cookie账号
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- 添加链接模态框 -->
+    <div class="modal fade" id="addLinkModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">添加转存链接</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="linkName">名称</label>
+                        <input type="text" class="form-control" id="linkName" placeholder="例如：如龙">
+                    </div>
+                    <div class="form-group">
+                        <label for="linkUrl">分享链接</label>
+                        <input type="text" class="form-control" id="linkUrl" placeholder="例如：https://pan.quark.cn/s/xxxx">
+                    </div>
+                    <div class="form-group">
+                        <label for="linkDirectory">保存目录</label>
+                        <input type="text" class="form-control" id="linkDirectory" placeholder="例如：/yyds/如龙">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="addNewLink()">添加</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑链接模态框 -->
+    <div class="modal fade" id="editLinkModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">编辑转存链接</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editLinkIndex">
+                    <div class="form-group">
+                        <label for="editLinkName">名称</label>
+                        <input type="text" class="form-control" id="editLinkName" placeholder="例如：如龙">
+                    </div>
+                    <div class="form-group">
+                        <label for="editLinkUrl">分享链接</label>
+                        <input type="text" class="form-control" id="editLinkUrl" placeholder="例如：https://pan.quark.cn/s/xxxx">
+                    </div>
+                    <div class="form-group">
+                        <label for="editLinkDirectory">保存目录</label>
+                        <input type="text" class="form-control" id="editLinkDirectory" placeholder="例如：/yyds/如龙">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="updateLink()">保存更改</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加/编辑Cookie模态框 -->
+    <div class="modal fade" id="cookieModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cookieModalTitle">添加Cookie</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="cookieModalIndex" value="-1">
+                    
+                    <!-- 基本配置 -->
+                    <div class="card mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-key"></i> Cookie基本配置</span>
+                            <button type="button" class="btn btn-outline-danger btn-sm" id="deleteCookieBtn" style="display: none;" onclick="deleteCookieModal()">
+                                <i class="bi bi-trash"></i> 删除账号
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label for="cookieModalName">Cookie名称</label>
+                                <input type="text" class="form-control" id="cookieModalName" placeholder="例如：默认账号">
+                            </div>
+                            <div class="form-group">
+                                <label for="cookieModalValue">夸克Cookie值</label>
+                                <div class="d-flex align-items-start">
+                                    <textarea class="form-control" id="cookieModalValue" rows="4" placeholder="请输入夸克Cookie"></textarea>
+                                    <button type="button" class="btn btn-outline-info ml-2" id="validateCookieBtn" onclick="validateCookie()" style="white-space: nowrap;">
+                                        <i class="bi bi-check-circle"></i> 验证
+                                    </button>
+                                </div>
+                                <div id="cookieValidationResult" class="mt-2" style="display: none;">
+                                    <span class="badge" id="cookieValidationBadge">验证中...</span>
+                                    <small id="cookieValidationMessage" class="ml-2"></small>
+                                </div>
+                                <small class="form-text text-muted">打开 pan.quark.com 按 F12 抓取Cookie</small>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!-- 钉钉通知配置 -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <i class="bi bi-bell"></i> 钉钉通知配置
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label for="cookieModalDDBotToken">钉钉机器人Token</label>
+                                <input type="text" class="form-control" id="cookieModalDDBotToken" placeholder="请输入钉钉机器人Token">
+                                <small class="form-text text-muted">在钉钉群机器人设置中获取</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="cookieModalDDBotSecret">钉钉机器人Secret</label>
+                                <input type="text" class="form-control" id="cookieModalDDBotSecret" placeholder="请输入钉钉机器人Secret">
+                                <small class="form-text text-muted">在钉钉群机器人设置中获取</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Telegram通知配置 -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <i class="bi bi-telegram"></i> Telegram通知配置
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label for="cookieModalTGBotToken">Telegram机器人Token</label>
+                                <input type="text" class="form-control" id="cookieModalTGBotToken" placeholder="请输入Telegram机器人Token">
+                                <small class="form-text text-muted">通过 @BotFather 创建机器人获取</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="cookieModalTGUserId">Telegram用户ID</label>
+                                <input type="text" class="form-control" id="cookieModalTGUserId" placeholder="请输入Telegram用户ID">
+                                <small class="form-text text-muted">通过 @userinfobot 获取你的用户ID</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 定时任务配置 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="bi bi-clock"></i> 定时任务配置
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label for="cookieModalCrontab">Crontab表达式</label>
+                                <input type="text" class="form-control" id="cookieModalCrontab" placeholder="0 8,18,20 * * *">
+                                <small class="form-text text-muted">格式: 分 时 日 月 周，例如: 0 8,18,20 * * * 表示每天8点、18点、20点执行</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveCookieModal()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改密码模态框 -->
+    <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-key"></i> 修改密码</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="changePasswordForm">
+                        <div class="form-group">
+                            <label for="currentPassword">当前密码</label>
+                            <input type="password" class="form-control" id="currentPassword" placeholder="请输入当前密码" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="newPassword">新密码</label>
+                            <input type="password" class="form-control" id="newPassword" placeholder="请输入新密码" required>
+                            <small class="form-text text-muted">密码长度至少6位</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPassword">确认新密码</label>
+                            <input type="password" class="form-control" id="confirmPassword" placeholder="请再次输入新密码" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="changePassword()">修改密码</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript库引用 -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <!-- JavaScript代码 -->
+    <script>
+        // 全局变量
+        let currentCookieIndex = 0; // 当前选中的cookie索引
+        let currentPage = 1;
+        const itemsPerPage = 25; // 每页显示25条任务
+        let totalLinks = 0;
+        let totalPages = 1;
+        let validCount = 0;
+        let invalidCount = 0;
+        let scriptRunning = false;
+        let scriptOutputInterval = null;
+
+        // 页面加载时初始化
+        $(document).ready(function() {
+            loadCookies();
+            loadConfig();
+            loadLinks();
+            loadScriptStatus();
+            
+            // 设置定时刷新脚本状态
+            setInterval(refreshScriptStatus, 5000);
+        });
+
+        // Cookie管理函数
+        function loadCookies() {
+            axios.get('/api/cookies')
+                .then(response => {
+                    const cookies = response.data;  // 直接使用response.data，而不是response.data.cookies
+                    const cookieList = $('#cookieList');
+                    cookieList.empty();
+                    
+                    if (cookies && cookies.length > 0) {
+                        cookies.forEach((cookie, index) => {
+                            const isActive = index === currentCookieIndex;
+                            const cookieItem = `
+                                <div class="account-item ${isActive ? 'active' : ''}" onclick="switchCookie(${index})">
+                                    <span class="account-name">${cookie.name || 'Cookie' + (index + 1)}</span>
+                                    <div class="account-actions">
+                                        <button class="account-edit-btn" onclick="event.stopPropagation(); editCookie(${index})">
+                                            <i class="bi bi-gear"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                            cookieList.append(cookieItem);
+                        });
+                    } else {
+                        cookieList.html('<div class="text-center text-muted">暂无Cookie</div>');
+                    }
+                    
+                    // 更新当前显示
+                    if (cookies && cookies.length > 0 && cookies[currentCookieIndex]) {
+                        const cookieName = cookies[currentCookieIndex].name || 'Cookie' + (currentCookieIndex + 1);
+                        $('#currentCookieDisplay').text(cookieName);
+                        $('#currentCookieForScript').text(cookieName);
+                    } else {
+                        $('#currentCookieDisplay').text('无Cookie');
+                        $('#currentCookieForScript').text('无Cookie');
+                    }
+                })
+                .catch(error => {
+                    console.error('加载Cookie列表失败:', error);
+                    showToast('加载Cookie列表失败', 'danger');
+                });
+        }
+
+        function switchCookie(index) {
+            currentCookieIndex = index;
+            loadCookies();
+            loadConfig();
+            loadLinks();
+            // 移除toast通知，因为用户反馈在点击cookie时出现的空白边框有关闭按钮
+            // showToast(`已切换到Cookie: ${index + 1}`, 'success');
+        }
+
+        function addNewCookie() {
+            // 重置模态框表单
+            $('#cookieModalIndex').val('-1');
+            $('#cookieModalTitle').text('添加Cookie');
+            $('#cookieModalName').val('');
+            $('#cookieModalValue').val('');
+            $('#cookieModalCrontab').val('');
+            
+            // 隐藏删除按钮（添加模式）
+            $('#deleteCookieBtn').hide();
+            
+            // 显示模态框
+            $('#cookieModal').modal('show');
+        }
+
+        function deleteCookie(index) {
+            if (!confirm(`确定要删除这个Cookie吗？此操作将删除该Cookie的所有配置和链接。`)) {
+                return;
+            }
+            
+            axios.delete(`/api/cookies/${index}`)
+                .then(response => {
+                    // 如果删除的是当前选中的cookie，切换到第一个cookie
+                    if (index === currentCookieIndex) {
+                        currentCookieIndex = 0;
+                    } else if (index < currentCookieIndex) {
+                        // 如果删除的cookie在当前选中的cookie之前，索引减1
+                        currentCookieIndex--;
+                    }
+                    loadCookies();
+                    loadConfig();
+                    loadLinks();
+                    showToast('Cookie删除成功', 'success');
+                })
+                .catch(error => {
+                    console.error('删除Cookie失败:', error);
+                    showToast('删除Cookie失败: ' + (error.response?.data?.error || error.message), 'danger');
+                });
+        }
+
+        function editCookie(index) {
+            // 获取当前cookie列表
+            axios.get('/api/cookies')
+                .then(response => {
+                    const cookies = response.data;
+                    if (index >= 0 && index < cookies.length) {
+                        const cookie = cookies[index];
+                        
+                        // 填充模态框表单
+                        $('#cookieModalIndex').val(index);
+                        $('#cookieModalTitle').text('编辑Cookie');
+                        $('#cookieModalName').val(cookie.name || '');
+                        $('#cookieModalValue').val(cookie.cookie || '');
+                        $('#cookieModalDDBotToken').val(cookie.dd_bot_token || '');
+                        $('#cookieModalDDBotSecret').val(cookie.dd_bot_secret || '');
+                        $('#cookieModalTGBotToken').val(cookie.tg_bot_token || '');
+                        $('#cookieModalTGUserId').val(cookie.tg_user_id || '');
+                        $('#cookieModalCrontab').val(cookie.crontab || '');
+                        
+                        // 显示删除按钮（编辑模式）
+                        $('#deleteCookieBtn').show();
+                        
+                        // 显示模态框
+                        $('#cookieModal').modal('show');
+                    } else {
+                        showToast('Cookie索引无效', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('获取Cookie信息失败:', error);
+                    showToast('获取Cookie信息失败: ' + (error.response?.data?.error || error.message), 'danger');
+                });
+        }
+
+        function saveCookieModal() {
+            const index = $('#cookieModalIndex').val();
+            const name = $('#cookieModalName').val().trim();
+            const cookieValue = $('#cookieModalValue').val().trim();
+            const ddBotToken = $('#cookieModalDDBotToken').val().trim();
+            const ddBotSecret = $('#cookieModalDDBotSecret').val().trim();
+            const tgBotToken = $('#cookieModalTGBotToken').val().trim();
+            const tgUserId = $('#cookieModalTGUserId').val().trim();
+            const crontab = $('#cookieModalCrontab').val().trim();
+            
+            if (!name) {
+                showToast('请输入Cookie名称', 'warning');
+                return;
+            }
+            
+            if (!cookieValue) {
+                showToast('请输入Cookie值', 'warning');
+                return;
+            }
+            
+            // 创建cookie对象
+            const cookieData = {
+                name: name,
+                cookie: cookieValue,
+                dd_bot_token: ddBotToken,
+                dd_bot_secret: ddBotSecret,
+                tg_bot_token: tgBotToken,
+                tg_user_id: tgUserId,
+                crontab: crontab,
+                tasklist: []
+            };
+            
+            if (index === '-1') {
+                // 添加新cookie
+                axios.post('/api/cookies', cookieData)
+                    .then(response => {
+                        $('#cookieModal').modal('hide');
+                        loadCookies();
+                        showToast('Cookie添加成功', 'success');
+                    })
+                    .catch(error => {
+                        console.error('添加Cookie失败:', error);
+                        showToast('添加Cookie失败: ' + (error.response?.data?.error || error.message), 'danger');
+                    });
+            } else {
+                // 编辑现有cookie
+                axios.put(`/api/cookies/${index}`, cookieData)
+                    .then(response => {
+                        $('#cookieModal').modal('hide');
+                        loadCookies();
+                        showToast('Cookie更新成功', 'success');
+                    })
+                    .catch(error => {
+                        console.error('更新Cookie失败:', error);
+                        showToast('更新Cookie失败: ' + (error.response?.data?.error || error.message), 'danger');
+                    });
+            }
+        }
+
+        // 配置管理函数
+        function loadConfig() {
+            // 此函数现在为空，因为所有配置功能已迁移到cookieModal中
+            // 保留此函数是为了兼容性，但不再执行任何操作
+        }
+
+        // 以下函数已废弃，因为所有配置功能已迁移到cookieModal中
+        // 保留这些函数声明是为了兼容性，但不再使用
+        function saveCookie() {
+            showToast('此功能已迁移到Cookie编辑模态框中', 'info');
+        }
+
+        function savePushConfig() {
+            showToast('此功能已迁移到Cookie编辑模态框中', 'info');
+        }
+
+        function saveCrontab() {
+            showToast('此功能已迁移到Cookie编辑模态框中', 'info');
+        }
+
+        // 任务管理函数（使用cookie的tasklist）
+        function loadLinks(page = currentPage) {
+            currentPage = page;
+            axios.get(`/api/cookies/${currentCookieIndex}/tasklist`, {
+                params: {
+                    page: currentPage,
+                    per_page: itemsPerPage
+                }
+            })
+                .then(response => {
+                    if (response.data.success) {
+                        const tasks = response.data.tasks;
+                        const pagination = response.data.pagination;
+                        const counts = response.data.counts;
+                        
+                        // 更新分页信息
+                        totalLinks = pagination.total_tasks;
+                        totalPages = pagination.total_pages;
+                        validCount = counts.valid;
+                        invalidCount = counts.invalid;
+                        
+                        // 渲染链接列表
+                        renderLinks(tasks);
+                        
+                        // 渲染分页控件
+                        renderPagination(pagination);
+                        
+                        // 更新有效/失效计数显示
+                        updateCountsDisplay();
+                        
+                        // 显示分页容器
+                        $('#paginationContainer').show();
+                    } else {
+                        $('#linksList').html('<div class="text-center text-danger">加载任务失败: ' + (response.data.message || '未知错误') + '</div>');
+                        $('#paginationContainer').hide();
+                    }
+                })
+                .catch(error => {
+                    console.error('加载任务失败:', error);
+                    $('#linksList').html('<div class="text-center text-danger">加载任务失败</div>');
+                    $('#paginationContainer').hide();
+                });
+        }
+
+        function renderLinks(tasks) {
+            const linksList = $('#linksList');
+            linksList.empty();
+            
+            if (tasks.length === 0) {
+                linksList.html('<div class="text-center text-muted">暂无转存任务</div>');
+                return;
+            }
+            
+            // 计算当前页的起始索引（用于显示序号）
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            
+            tasks.forEach((task, index) => {
+                const globalIndex = startIndex + index;
+                const linkItem = `
+                    <div class="link-item" id="link-item-${globalIndex}" data-index="${globalIndex}" data-shareurl="${task.shareurl || ''}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="d-flex align-items-center mb-1">
+                                    <h6 class="mb-0 mr-2">${task.taskname || '未命名任务'}</h6>
+                                    <span class="badge badge-secondary link-validity-badge" id="validity-badge-${globalIndex}">
+                                        <i class="bi bi-question-circle"></i> 检查中...
+                                    </span>
+                                </div>
+                                <p class="mb-1 small text-muted">分享链接: ${task.shareurl || '无'}</p>
+                                <p class="mb-0 small text-muted">保存目录: ${task.savepath || '无'}</p>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-outline-primary mr-1" onclick="editTask(${globalIndex})">
+                                    <i class="bi bi-pencil"></i> 编辑
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteTask(${globalIndex})">
+                                    <i class="bi bi-trash"></i> 删除
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                linksList.append(linkItem);
+            });
+            
+            // 初始化所有链接的有效性检查
+            checkAllLinksValidity();
+        }
+
+        function addNewLink() {
+            const name = $('#linkName').val().trim();
+            const url = $('#linkUrl').val().trim();
+            const directory = $('#linkDirectory').val().trim();
+            
+            if (!name || !url || !directory) {
+                showToast('请填写所有字段', 'warning');
+                return;
+            }
+            
+            // 首先获取当前cookie的完整tasklist（不分页）
+            axios.get(`/api/cookies/${currentCookieIndex}/tasklist?page=1&per_page=1000`)
+                .then(response => {
+                    if (response.data.success) {
+                        // 获取完整的tasklist
+                        const fullTasklist = [];
+                        const totalTasks = response.data.pagination.total_tasks;
+                        const totalPages = response.data.pagination.total_pages;
+                        
+                        // 如果有更多页，需要获取所有页的数据
+                        if (totalPages > 1) {
+                            // 这里简化处理：直接使用第一页的数据，然后添加新任务
+                            // 实际应该获取所有页的数据，但为了简化，我们假设任务数量不多
+                            const firstPageTasks = response.data.tasks;
+                            
+                            // 创建新任务对象
+                            const newTask = {
+                                taskname: name,
+                                shareurl: url,
+                                savepath: directory,
+                                enddate: "",
+                                emby_id: "",
+                                ignore_extension: false,
+                                runweek: [1, 2, 3, 4, 5, 6, 7] // 默认每天运行
+                            };
+                            
+                            // 添加到tasklist（这里需要获取完整的tasklist，但为了简化，我们只更新第一页）
+                            // 实际应该调用一个专门的API来添加任务，而不是修改整个tasklist
+                            // 这里我们使用现有的更新整个tasklist的API
+                            return axios.get(`/api/cookies/${currentCookieIndex}/tasklist?page=1&per_page=${totalTasks}`)
+                                .then(fullResponse => {
+                                    if (fullResponse.data.success) {
+                                        const allTasks = fullResponse.data.tasks;
+                                        allTasks.push(newTask);
+                                        
+                                        return axios.post(`/api/cookies/${currentCookieIndex}/tasklist`, {
+                                            tasklist: allTasks
+                                        });
+                                    } else {
+                                        throw new Error('获取完整任务列表失败');
+                                    }
+                                });
+                        } else {
+                            // 只有一页，直接处理
+                            const tasklist = response.data.tasks;
+                            const newTask = {
+                                taskname: name,
+                                shareurl: url,
+                                savepath: directory,
+                                enddate: "",
+                                emby_id: "",
+                                ignore_extension: false,
+                                runweek: [1, 2, 3, 4, 5, 6, 7]
+                            };
+                            
+                            tasklist.push(newTask);
+                            
+                            return axios.post(`/api/cookies/${currentCookieIndex}/tasklist`, {
+                                tasklist: tasklist
+                            });
+                        }
+                    } else {
+                        throw new Error(response.data.message || '获取任务列表失败');
+                    }
+                })
+                .then(response => {
+                    $('#addLinkModal').modal('hide');
+                    $('#linkName').val('');
+                    $('#linkUrl').val('');
+                    $('#linkDirectory').val('');
+                    
+                    // 重新加载当前页
+                    loadLinks(currentPage);
+                    showToast('任务添加成功', 'success');
+                })
+                .catch(error => {
+                    console.error('添加任务失败:', error);
+                    showToast('添加任务失败: ' + (error.response?.data?.error || error.message), 'danger');
+                });
+        }
+
+        function editTask(index) {
+            // 获取当前cookie的完整tasklist（不分页）以找到正确的任务
+            axios.get(`/api/cookies/${currentCookieIndex}/tasklist?page=1&per_page=1000`)
+                .then(response => {
+                    if (response.data.success) {
+                        const allTasks = response.data.tasks;
+                        if (index >= 0 && index < allTasks.length) {
+                            const task = allTasks[index];
+                            $('#editLinkIndex').val(index);
+                            $('#editLinkName').val(task.taskname || '');
+                            $('#editLinkUrl').val(task.shareurl || '');
+                            $('#editLinkDirectory').val(task.savepath || '');
+                            $('#editLinkModal').modal('show');
+                        } else {
+                            showToast('任务索引无效', 'danger');
+                        }
+                    } else {
+                        showToast('获取任务失败: ' + (response.data.message || '未知错误'), 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('获取任务失败:', error);
+                    showToast('获取任务失败: ' + (error.response?.data?.error || error.message), 'danger');
+                });
+        }
+
+        function updateLink() {
+            const taskIndex = $('#editLinkIndex').val();
+            const name = $('#editLinkName').val().trim();
+            const url = $('#editLinkUrl').val().trim();
+            const directory = $('#editLinkDirectory').val().trim();
+            
+            if (!name || !url || !directory) {
+                showToast('请填写所有字段', 'warning');
+                return;
+            }
+            
+            // 首先获取当前cookie的完整tasklist
+            axios.get(`/api/cookies/${currentCookieIndex}/tasklist?page=1&per_page=1000`)
+                .then(response => {
+                    if (response.data.success) {
+                        const allTasks = response.data.tasks;
+                        if (taskIndex >= 0 && taskIndex < allTasks.length) {
+                            // 更新任务
+                            allTasks[taskIndex].taskname = name;
+                            allTasks[taskIndex].shareurl = url;
+                            allTasks[taskIndex].savepath = directory;
+                            // 移除pattern和replace字段
+                            delete allTasks[taskIndex].pattern;
+                            delete allTasks[taskIndex].replace;
+                            
+                            // 发送更新请求
+                            return axios.post(`/api/cookies/${currentCookieIndex}/tasklist`, {
+                                tasklist: allTasks
+                            });
+                        } else {
+                            throw new Error('任务索引无效');
+                        }
+                    } else {
+                        throw new Error(response.data.message || '获取任务列表失败');
+                    }
+                })
+                .then(response => {
+                    $('#editLinkModal').modal('hide');
+                    // 重新加载当前页
+                    loadLinks(currentPage);
+                    showToast('任务更新成功', 'success');
+                })
+                .catch(error => {
+                    console.error('更新任务失败:', error);
+                    showToast('更新任务失败: ' + (error.response?.data?.error || error.message), 'danger');
+                });
+        }
+
+        function deleteTask(index) {
+            if (!confirm('确定要删除这个任务吗？')) {
+                return;
+            }
+            
+            // 首先获取当前cookie的完整tasklist（不分页）
+            axios.get(`/api/cookies/${currentCookieIndex}/tasklist?page=1&per_page=1000`)
+                .then(response => {
+                    if (response.data.success) {
+                        const allTasks = response.data.tasks;
+                        if (index >= 0 && index < allTasks.length) {
+                            // 从tasklist中删除指定索引的任务
+                            allTasks.splice(index, 1);
+                            
+                            // 发送更新请求
+                            return axios.post(`/api/cookies/${currentCookieIndex}/tasklist`, {
+                                tasklist: allTasks
+                            });
+                        } else {
+                            throw new Error('任务索引无效');
+                        }
+                    } else {
+                        throw new Error(response.data.message || '获取任务列表失败');
+                    }
+                })
+                .then(response => {
+                    // 重新加载当前页
+                    loadLinks(currentPage);
+                    showToast('任务删除成功', 'success');
+                })
+                .catch(error => {
+                    console.error('删除任务失败:', error);
+                    showToast('删除任务失败: ' + (error.response?.data?.error || error.message), 'danger');
+                });
+        }
+
+        // 分页相关函数
+        function renderPagination(pagination) {
+            const paginationElement = $('#pagination');
+            const pageInfoElement = $('#pageInfo');
+            
+            paginationElement.empty();
+            
+            // 如果没有分页或只有一页，不显示分页控件
+            if (!pagination || pagination.total_pages <= 1) {
+                pageInfoElement.text(`共 ${pagination.total_tasks} 条任务`);
+                return;
+            }
+            
+            const { page, total_pages, has_prev, has_next } = pagination;
+            
+            // 添加上一页按钮
+            const prevButton = `
+                <li class="page-item ${!has_prev ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="${has_prev ? `loadLinks(${page - 1}); return false;` : 'return false;'}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+            `;
+            paginationElement.append(prevButton);
+            
+            // 计算要显示的页码范围
+            let startPage = Math.max(1, page - 2);
+            let endPage = Math.min(total_pages, page + 2);
+            
+            // 确保显示5个页码（如果可能）
+            if (endPage - startPage < 4) {
+                if (startPage === 1) {
+                    endPage = Math.min(total_pages, startPage + 4);
+                } else if (endPage === total_pages) {
+                    startPage = Math.max(1, endPage - 4);
+                }
+            }
+            
+            // 添加页码按钮
+            for (let i = startPage; i <= endPage; i++) {
+                const pageButton = `
+                    <li class="page-item ${i === page ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="loadLinks(${i}); return false;">
+                            ${i}
+                        </a>
+                    </li>
+                `;
+                paginationElement.append(pageButton);
+            }
+            
+            // 添加下一页按钮
+            const nextButton = `
+                <li class="page-item ${!has_next ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="${has_next ? `loadLinks(${page + 1}); return false;` : 'return false;'}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+            `;
+            paginationElement.append(nextButton);
+            
+            // 更新页码信息
+            const startItem = (page - 1) * itemsPerPage + 1;
+            const endItem = Math.min(page * itemsPerPage, pagination.total_tasks);
+            pageInfoElement.text(`显示第 ${startItem}-${endItem} 条，共 ${pagination.total_tasks} 条任务`);
+        }
+
+        function updateCountsDisplay() {
+            // 在添加按钮左侧显示有效/失效计数
+            const countsHtml = `
+                <span id="countsDisplay" class="mr-3">
+                    <span class="badge badge-success mr-1">
+                        <i class="bi bi-check-circle"></i> 有效: ${validCount}
+                    </span>
+                    <span class="badge badge-danger">
+                        <i class="bi bi-x-circle"></i> 失效: ${invalidCount}
+                    </span>
+                </span>
+            `;
+            
+            // 检查是否已经添加了计数显示
+            if ($('#countsDisplay').length === 0) {
+                // 在添加按钮前插入计数显示
+                $('.card-header span:first').after(countsHtml);
+            } else {
+                // 更新现有的计数显示
+                $('#countsDisplay').replaceWith(countsHtml);
+            }
+        }
+
+        // 脚本运行函数
+        function runScript(scriptName) {
+            if (scriptRunning) {
+                showToast('已有脚本正在运行，请等待完成', 'warning');
+                return;
+            }
+            
+            scriptRunning = true;
+            $('#scriptStatus').text('运行中').removeClass().addClass('status-running');
+            $('#scriptOutput').text('脚本启动中...');
+            
+            axios.post('/api/script/run', { 
+                script: scriptName,
+                cookie_index: currentCookieIndex
+            })
+                .then(response => {
+                    showToast('脚本启动成功', 'success');
+                    
+                    // 开始轮询脚本输出
+                    if (scriptOutputInterval) {
+                        clearInterval(scriptOutputInterval);
+                    }
+                    scriptOutputInterval = setInterval(fetchScriptOutput, 1000);
+                })
+                .catch(error => {
+                    console.error('启动脚本失败:', error);
+                    showToast('启动脚本失败: ' + (error.response?.data?.error || error.message), 'danger');
+                    scriptRunning = false;
+                    $('#scriptStatus').text('空闲').removeClass().addClass('status-idle');
+                });
+        }
+
+        function fetchScriptOutput() {
+            axios.get('/api/script/status')
+                .then(response => {
+                    const output = response.data.output;
+                    const status = response.data.status;
+                    
+                    $('#scriptOutput').text(output);
+                    
+                    if (status === 'completed' || status === 'error') {
+                        scriptRunning = false;
+                        clearInterval(scriptOutputInterval);
+                        scriptOutputInterval = null;
+                        
+                        if (status === 'completed') {
+                            $('#scriptStatus').text('已完成').removeClass().addClass('status-completed');
+                            showToast('脚本执行完成', 'success');
+                        } else {
+                            $('#scriptStatus').text('出错').removeClass().addClass('status-error');
+                            showToast('脚本执行出错', 'danger');
+                        }
+                        
+                        // 更新最后运行时间
+                        const now = new Date();
+                        $('#lastRunTime').text('最后运行: ' + now.toLocaleString());
+                    }
+                })
+                .catch(error => {
+                    console.error('获取脚本输出失败:', error);
+                });
+        }
+
+        function loadScriptStatus() {
+            axios.get('/api/script/status')
+                .then(response => {
+                    const status = response.data.status;
+                    const output = response.data.output;
+                    const lastRun = response.data.last_run;
+                    
+                    $('#scriptStatus').text(status === 'running' ? '运行中' : '空闲')
+                        .removeClass()
+                        .addClass(status === 'running' ? 'status-running' : 'status-idle');
+                    
+                    if (output) {
+                        $('#scriptOutput').text(output);
+                    }
+                    
+                    if (lastRun) {
+                        $('#lastRunTime').text('最后运行: ' + new Date(lastRun).toLocaleString());
+                    }
+                    
+                    scriptRunning = status === 'running';
+                    
+                    if (scriptRunning && !scriptOutputInterval) {
+                        scriptOutputInterval = setInterval(fetchScriptOutput, 1000);
+                    }
+                })
+                .catch(error => {
+                    console.error('加载脚本状态失败:', error);
+                });
+        }
+
+        function refreshScriptStatus() {
+            loadScriptStatus();
+            // 不再显示状态已刷新弹窗
+        }
+
+        function showToast(message, type = 'info') {
+            // 参数验证：如果消息为空或未定义，不创建toast
+            if (!message || message.trim() === '') {
+                console.warn('showToast: 消息为空，跳过创建toast');
+                return;
+            }
+            
+            // 确保type是有效值
+            const validTypes = ['success', 'warning', 'danger', 'info'];
+            if (!validTypes.includes(type)) {
+                type = 'info';
+            }
+            
+            // 创建Toast元素
+            const toastId = 'toast-' + Date.now();
+            const toastHtml = `
+                <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="3000">
+                    <div class="toast-header">
+                        <strong class="mr-auto">${type === 'success' ? '成功' : type === 'warning' ? '警告' : type === 'danger' ? '错误' : '信息'}</strong>
+                        <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="关闭">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                </div>
+            `;
+            
+            // 添加到页面
+            $('body').append(toastHtml);
+            
+            // 显示Toast
+            $(`#${toastId}`).toast('show');
+            
+            // 自动移除
+            $(`#${toastId}`).on('hidden.bs.toast', function () {
+                $(this).remove();
+            });
+        }
+
+        // 链接有效性检查函数
+        function checkLinkValidity(index, shareurl) {
+            if (!shareurl || shareurl.trim() === '') {
+                // 如果没有分享链接，显示无效状态
+                updateValidityBadge(index, false, '无分享链接');
+                return;
+            }
+
+            // 检查是否是夸克分享链接
+            if (!shareurl.includes('pan.quark.cn/s/')) {
+                updateValidityBadge(index, false, '非夸克链接');
+                return;
+            }
+
+            // 发送请求检查链接有效性
+            axios.post('/api/check_link_validity', {
+                cookie_index: currentCookieIndex,
+                shareurl: shareurl
+            })
+            .then(response => {
+                if (response.data.success) {
+                    const isValid = response.data.is_valid;
+                    const message = response.data.message;
+                    updateValidityBadge(index, isValid, message);
+                } else {
+                    updateValidityBadge(index, false, response.data.message || '检查失败');
+                }
+            })
+            .catch(error => {
+                console.error(`检查链接有效性失败 (索引 ${index}):`, error);
+                updateValidityBadge(index, false, '请求失败');
+            });
+        }
+
+        function checkAllLinksValidity() {
+            // 获取所有链接项
+            $('.link-item').each(function() {
+                const index = $(this).data('index');
+                const shareurl = $(this).data('shareurl');
+                if (index !== undefined && shareurl !== undefined) {
+                    checkLinkValidity(index, shareurl);
+                }
+            });
+        }
+
+        function updateValidityBadge(index, isValid, message) {
+            const badge = $(`#validity-badge-${index}`);
+            if (badge.length === 0) return;
+
+            // 移除所有样式类
+            badge.removeClass('badge-secondary badge-success badge-danger badge-warning');
+            
+            // 根据有效性设置样式和文本
+            if (isValid === true) {
+                badge.addClass('badge-success');
+                badge.html('<i class="bi bi-check-circle"></i> 有效');
+                badge.attr('title', message || '链接有效');
+            } else if (isValid === false) {
+                badge.addClass('badge-danger');
+                badge.html('<i class="bi bi-x-circle"></i> 失效');
+                badge.attr('title', message || '链接失效');
+            } else {
+                // 检查中或未知状态
+                badge.addClass('badge-warning');
+                badge.html('<i class="bi bi-question-circle"></i> 检查中...');
+                badge.attr('title', message || '正在检查');
+            }
+        }
+
+        // 设置每30秒更新一次链接有效性的定时器
+        let linkValidityInterval = null;
+        
+        function startLinkValidityChecker() {
+            // 如果已经有定时器，先清除
+            if (linkValidityInterval) {
+                clearInterval(linkValidityInterval);
+            }
+            
+            // 每30秒检查一次所有链接的有效性
+            linkValidityInterval = setInterval(checkAllLinksValidity, 120000);
+            
+            // 立即执行一次检查
+            checkAllLinksValidity();
+        }
+
+        // 在页面加载完成后启动链接有效性检查器
+        $(document).ready(function() {
+            // ... 现有的初始化代码 ...
+            
+            // 启动链接有效性检查器
+            startLinkValidityChecker();
+        });
+
+        // 修改密码函数
+        function changePassword() {
+            const currentPassword = $('#currentPassword').val().trim();
+            const newPassword = $('#newPassword').val().trim();
+            const confirmPassword = $('#confirmPassword').val().trim();
+            
+            // 验证输入
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                showToast('请填写所有字段', 'warning');
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                showToast('新密码长度至少6位', 'warning');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                showToast('两次输入的新密码不一致', 'warning');
+                return;
+            }
+            
+            // 发送修改密码请求
+            axios.post('/change_password', {
+                current_password: currentPassword,
+                new_password: newPassword
+            })
+            .then(response => {
+                if (response.data.success) {
+                    showToast('密码修改成功', 'success');
+                    $('#changePasswordModal').modal('hide');
+                    // 清空表单
+                    $('#currentPassword').val('');
+                    $('#newPassword').val('');
+                    $('#confirmPassword').val('');
+                } else {
+                    showToast(response.data.message || '密码修改失败', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('修改密码失败:', error);
+                showToast('修改密码失败: ' + (error.response?.data?.message || error.message), 'danger');
+            });
+        }
+
+        // Cookie验证函数
+        function validateCookie() {
+            const cookieValue = $('#cookieModalValue').val().trim();
+            
+            if (!cookieValue) {
+                showToast('请输入Cookie值', 'warning');
+                return;
+            }
+            
+            // 显示验证中状态
+            $('#cookieValidationResult').show();
+            $('#cookieValidationBadge').removeClass('badge-success badge-danger badge-warning').addClass('badge-warning');
+            $('#cookieValidationBadge').html('<i class="bi bi-hourglass-split"></i> 验证中...');
+            $('#cookieValidationMessage').text('正在验证Cookie有效性...');
+            
+            // 禁用验证按钮，防止重复点击
+            $('#validateCookieBtn').prop('disabled', true);
+            
+            // 发送验证请求
+            axios.post('/api/validate_cookie', {
+                cookie: cookieValue
+            })
+            .then(response => {
+                if (response.data.success) {
+                    const isValid = response.data.is_valid;
+                    const message = response.data.message;
+                    
+                    if (isValid) {
+                        $('#cookieValidationBadge').removeClass('badge-warning').addClass('badge-success');
+                        $('#cookieValidationBadge').html('<i class="bi bi-check-circle"></i> 有效');
+                        $('#cookieValidationMessage').text(message || 'Cookie有效');
+                    } else {
+                        $('#cookieValidationBadge').removeClass('badge-warning').addClass('badge-danger');
+                        $('#cookieValidationBadge').html('<i class="bi bi-x-circle"></i> 失效');
+                        $('#cookieValidationMessage').text(message || 'Cookie无效');
+                    }
+                } else {
+                    $('#cookieValidationBadge').removeClass('badge-warning').addClass('badge-danger');
+                    $('#cookieValidationBadge').html('<i class="bi bi-exclamation-triangle"></i> 验证失败');
+                    $('#cookieValidationMessage').text(response.data.message || '验证失败');
+                }
+            })
+            .catch(error => {
+                console.error('验证Cookie失败:', error);
+                $('#cookieValidationBadge').removeClass('badge-warning').addClass('badge-danger');
+                $('#cookieValidationBadge').html('<i class="bi bi-exclamation-triangle"></i> 验证失败');
+                $('#cookieValidationMessage').text('请求失败: ' + (error.response?.data?.message || error.message || '网络错误'));
+            })
+            .finally(() => {
+                // 重新启用验证按钮
+                $('#validateCookieBtn').prop('disabled', false);
+            });
+        }
+
+        // 删除Cookie模态框函数
+        function deleteCookieModal() {
+            const index = $('#cookieModalIndex').val();
+            
+            if (index === '-1') {
+                showToast('无法删除新添加的Cookie', 'warning');
+                return;
+            }
+            
+            if (!confirm(`确定要删除这个Cookie吗？此操作将删除该Cookie的所有配置和链接。`)) {
+                return;
+            }
+            
+            // 调用现有的deleteCookie函数
+            deleteCookie(index);
+            
+            // 关闭模态框
+            $('#cookieModal').modal('hide');
+        }
+
+    </script>
+</body>
+</html>
