@@ -529,7 +529,7 @@ class QuarkManager:
             cache_data = self.invalid_links_cache[cache_key]
             # 检查缓存是否过期（5分钟）
             cache_time = datetime.fromisoformat(cache_data["timestamp"])
-            if (datetime.now() - cache_time).total_seconds() < 300:  # 5分钟
+            if (datetime.now() - cache_time).total_seconds() < 10800:  # 5分钟
                 return cache_data["data"]
         
         # 如果没有缓存或缓存过期，返回空结果
@@ -640,7 +640,6 @@ manager = QuarkManager()
 # 在实际应用中，应该从数据库或配置文件中读取
 VALID_USERS = {
     "admin": "admin123",
-    "user": "password123"
 }
 
 def login_required(f):
