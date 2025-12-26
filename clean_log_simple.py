@@ -9,7 +9,7 @@ import os
 import sys
 from datetime import datetime
 
-def clean_log_simple(log_path="simple_admin/quark_save.log", max_size_mb=10):
+def clean_log_simple(log_path="/quark_save.log", max_size_mb=10):
     """
     简单清理日志：超过指定大小就清空内容
     
