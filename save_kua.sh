@@ -10,6 +10,7 @@ VENV_DIR="$PROJECT_DIR/venv"
 PID_FILE="/tmp/save_kua.pid"
 LOG_FILE="$PROJECT_DIR/app.log"
 PORT="5000"
+GITHUB_REPO="https://github.com/woniu336/kua-auto-save.git"
 
 # 颜色输出
 RED='\033[0;31m'
@@ -37,6 +38,53 @@ install_system_package() {
         return 0
     else
         echo -e "${RED}✗ $1 安装失败${NC}"
+        return 1
+    fi
+}
+
+# 从GitHub克隆项目
+clone_from_github() {
+    echo -e "${YELLOW}从GitHub克隆项目...${NC}"
+    echo "仓库地址: $GITHUB_REPO"
+    
+    # 检查是否已安装git
+    if ! check_command git; then
+        echo -e "${YELLOW}Git未安装，正在安装...${NC}"
+        install_system_package "git"
+    fi
+    
+    # 如果目录已存在，询问如何处理
+    if [ -d "$PROJECT_DIR" ]; then
+        echo -e "${YELLOW}目录 '$PROJECT_DIR' 已存在${NC}"
+        read -p "是否删除并重新克隆？ (y/N): " choice
+        if [[ "$choice" =~ ^[Yy]$ ]]; then
+            echo "删除现有目录..."
+            rm -rf "$PROJECT_DIR"
+        else
+            echo "使用现有目录"
+            return 0
+        fi
+    fi
+    
+    # 克隆项目
+    echo "正在克隆项目..."
+    git clone "$GITHUB_REPO" "$PROJECT_DIR"
+    
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✓ 项目克隆成功${NC}"
+        
+        # 检查是否克隆成功
+        if [ -f "$PROJECT_DIR/app.py" ]; then
+            echo -e "${GREEN}✓ 找到 app.py 文件${NC}"
+        else
+            echo -e "${YELLOW}警告: 未找到 app.py 文件${NC}"
+            echo "请检查项目结构:"
+            ls -la "$PROJECT_DIR/"
+        fi
+        
+        return 0
+    else
+        echo -e "${RED}✗ 项目克隆失败${NC}"
         return 1
     fi
 }
@@ -238,11 +286,17 @@ with open('$temp_file', 'w') as f:
 install_app() {
     echo "=== 开始安装应用 ==="
     
-    # 检查项目目录
-    if [ ! -d "$PROJECT_DIR" ]; then
-        echo -e "${RED}错误: 项目目录不存在: $PROJECT_DIR${NC}"
-        echo "请先将项目代码放置在 $PROJECT_DIR"
-        exit 1
+    # 检查项目目录是否存在，如果不存在则询问是否从GitHub克隆
+    if [ ! -d "$PROJECT_DIR" ] || [ ! -f "$PROJECT_DIR/app.py" ]; then
+        echo -e "${YELLOW}项目目录不存在或缺少 app.py 文件${NC}"
+        read -p "是否从GitHub克隆项目？ (Y/n): " choice
+        if [[ ! "$choice" =~ ^[Nn]$ ]]; then
+            clone_from_github || exit 1
+        else
+            echo -e "${RED}错误: 项目目录不存在: $PROJECT_DIR${NC}"
+            echo "请先将项目代码放置在 $PROJECT_DIR 或选择从GitHub克隆"
+            exit 1
+        fi
     fi
     
     if [ ! -f "$PROJECT_DIR/app.py" ]; then
@@ -473,9 +527,10 @@ show_help() {
     echo "  虚拟环境: $VENV_DIR"
     echo "  运行端口: $PORT"
     echo "  日志文件: $LOG_FILE"
+    echo "  GitHub仓库: $GITHUB_REPO"
     echo ""
     echo "快速开始:"
-    echo "  ./save_kua.sh install   # 首次安装"
+    echo "  ./save_kua.sh install   # 首次安装（自动从GitHub克隆）"
     echo "  ./save_kua.sh start     # 启动应用"
     echo "  ./save_kua.sh status    # 查看状态"
 }

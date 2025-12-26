@@ -41,3 +41,11 @@ crontab -l
 ```
 
 <br>
+
+## 卸载
+
+```
+./save_kua.sh stop
+rm -rf ~/kua-auto-save/venv
+```
+
