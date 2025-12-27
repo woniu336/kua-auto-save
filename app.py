@@ -657,12 +657,29 @@ def login_required(f):
 
 # ==================== 路由定义 ====================
 
+def get_recent_logs(log_file_path='quark_save.log', max_lines=800):
+    """读取日志文件的最后N行"""
+    try:
+        if not os.path.exists(log_file_path):
+            return "日志文件不存在"
+        
+        with open(log_file_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        
+        # 获取最后max_lines行
+        recent_lines = lines[-max_lines:] if len(lines) > max_lines else lines
+        return ''.join(recent_lines)
+    except Exception as e:
+        logger.error(f"读取日志文件失败: {e}")
+        return f"读取日志文件失败: {str(e)}"
+
 @app.route('/')
 @login_required
 def index():
     """首页 - 显示所有账号"""
     accounts = manager.get_all_accounts()
-    return render_template('index.html', accounts=accounts)
+    recent_logs = get_recent_logs()
+    return render_template('index.html', accounts=accounts, recent_logs=recent_logs)
 
 @app.route('/account/<int:account_id>')
 @login_required
