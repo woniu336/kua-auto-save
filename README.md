@@ -8,6 +8,13 @@ curl -sS -O https://raw.githubusercontent.com/woniu336/kua-auto-save/main/save_k
 ```
 
 
+修改密码：
+
+```
+curl -sSL https://raw.githubusercontent.com/woniu336/kua-auto-save/main/update_user.py -o update_user.py && python3 update_user.py
+```
+
+
 
 
 ## 定时任务
