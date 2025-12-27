@@ -657,7 +657,7 @@ def login_required(f):
 
 # ==================== 路由定义 ====================
 
-def get_recent_logs(log_file_path='quark_save.log', max_lines=800):
+def get_recent_logs(log_file_path='quark_save.log', max_lines=200):
     """读取日志文件的最后N行"""
     try:
         if not os.path.exists(log_file_path):
