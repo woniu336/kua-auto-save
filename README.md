@@ -15,6 +15,13 @@ curl -sSL https://raw.githubusercontent.com/woniu336/kua-auto-save/main/update_u
 ```
 
 
+定时删除备份文件
+
+```
+(crontab -l 2>/dev/null; echo "10 4 * * 1 find /root/kua-auto-save/backups/ -name '*.json' -type f -delete") | crontab -
+```
+
+
 
 
 ## 定时任务
