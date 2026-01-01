@@ -132,63 +132,44 @@ def send_ql_notify(title: str, body: str, cookie_index: Optional[int] = None) ->
     try:
         import notify
         
-        # 从所有Cookie中查找有效的钉钉通知配置
+        cookies_config = CONFIG_DATA.get("cookies") or []
+
+        def _clean(value: Optional[str]) -> Optional[str]:
+            return value.strip() if isinstance(value, str) else value
+        
         dd_bot_token: Optional[str] = None
         dd_bot_secret: Optional[str] = None
-        
-        # 从所有Cookie中查找有效的TG通知配置
         tg_bot_token: Optional[str] = None
         tg_user_id: Optional[str] = None
         
-        if CONFIG_DATA.get("cookies"):
-            # 如果指定了cookie_index，使用该索引对应的cookie配置
-            if cookie_index is not None and 0 <= cookie_index < len(CONFIG_DATA["cookies"]):
-                cookie_config = CONFIG_DATA["cookies"][cookie_index]
-                # 查找钉钉配置
-                token = cookie_config.get("dd_bot_token")
-                secret = cookie_config.get("dd_bot_secret")
+        if cookie_index is not None and 0 <= cookie_index < len(cookies_config):
+            cookie_config = cookies_config[cookie_index]
+            dd_bot_token = _clean(cookie_config.get("dd_bot_token"))
+            dd_bot_secret = _clean(cookie_config.get("dd_bot_secret"))
+            tg_bot_token = _clean(cookie_config.get("tg_bot_token"))
+            tg_user_id = _clean(cookie_config.get("tg_user_id"))
+        
+        if (not dd_bot_token or not dd_bot_secret) and cookies_config:
+            for idx, cookie_config in enumerate(cookies_config):
+                if cookie_index is not None and idx == cookie_index:
+                    continue
+                token = _clean(cookie_config.get("dd_bot_token"))
+                secret = _clean(cookie_config.get("dd_bot_secret"))
                 if token and secret:
                     dd_bot_token = token
                     dd_bot_secret = secret
-                
-                # 查找TG配置
-                tg_token = cookie_config.get("tg_bot_token")
-                tg_id = cookie_config.get("tg_user_id")
-                if tg_token and tg_id:
-                    tg_bot_token = tg_token
-                    tg_user_id = tg_id
-                else:
-                    # 如果没有找到当前cookie的配置，回退到遍历所有cookie
-                    for cookie_config in CONFIG_DATA["cookies"]:
-                        # 查找钉钉配置
-                        token = cookie_config.get("dd_bot_token")
-                        secret = cookie_config.get("dd_bot_secret")
-                        if token and secret:
-                            dd_bot_token = token
-                            dd_bot_secret = secret
-                        
-                        # 查找TG配置
-                        tg_token = cookie_config.get("tg_bot_token")
-                        tg_id = cookie_config.get("tg_user_id")
-                        if tg_token and tg_id:
-                            tg_bot_token = tg_token
-                            tg_user_id = tg_id
-            else:
-                # 如果没有指定cookie_index，遍历所有cookie（保持向后兼容）
-                for cookie_config in CONFIG_DATA["cookies"]:
-                    # 查找钉钉配置
-                    token = cookie_config.get("dd_bot_token")
-                    secret = cookie_config.get("dd_bot_secret")
-                    if token and secret:
-                        dd_bot_token = token
-                        dd_bot_secret = secret
-                    
-                    # 查找TG配置
-                    tg_token = cookie_config.get("tg_bot_token")
-                    tg_id = cookie_config.get("tg_user_id")
-                    if tg_token and tg_id:
-                        tg_bot_token = tg_token
-                        tg_user_id = tg_id
+                    break
+        
+        if (not tg_bot_token or not tg_user_id) and cookies_config:
+            for idx, cookie_config in enumerate(cookies_config):
+                if cookie_index is not None and idx == cookie_index:
+                    continue
+                token = _clean(cookie_config.get("tg_bot_token"))
+                user_id = _clean(cookie_config.get("tg_user_id"))
+                if token and user_id:
+                    tg_bot_token = token
+                    tg_user_id = user_id
+                    break
         
         # 如果找到了钉钉配置，发送钉钉通知
         if dd_bot_token and dd_bot_secret:

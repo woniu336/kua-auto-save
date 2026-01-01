@@ -1,12 +1,13 @@
 #!/bin/bash
 # save_kua.sh - 简化版应用管理脚本
-# 用法: ./save_kua.sh [install|start|stop|status|restart|help]
+# 用法: ./save_kua.sh [install|start|stop|status|restart|reset|help]
 
 set -e
 
 # 配置
 PROJECT_DIR="$HOME/kua-auto-save"
 VENV_DIR="$PROJECT_DIR/venv"
+ENV_FILE="$PROJECT_DIR/.env"
 PID_FILE="/tmp/save_kua.pid"
 LOG_FILE="$PROJECT_DIR/app.log"
 CRON_LOG_FILE="$PROJECT_DIR/quark_save.log"
@@ -134,81 +135,37 @@ install_requirements() {
     return 0
 }
 
-# 设置管理员账户
-setup_admin_account() {
-    echo ""
-    echo "========================================"
-    echo "  设置管理员账户"
-    echo "========================================"
-    
-    # 检查 app.py 是否存在
-    if [ ! -f "$PROJECT_DIR/app.py" ]; then
-        echo -e "${RED}错误: app.py 文件不存在${NC}"
-        return 1
+# 环境变量工具函数
+ensure_env_file() {
+    if [ ! -f "$ENV_FILE" ]; then
+        touch "$ENV_FILE"
     fi
-    
-    # 询问是否要修改
-    read -p "是否要设置新的管理员账户？ (y/N): " choice
-    if [[ ! "$choice" =~ ^[Yy]$ ]]; then
-        echo "保持现有配置不变"
-        return 0
-    fi
-    
-    # 读取用户名
-    read -p "请输入用户名 (默认: admin): " username
-    username=${username:-admin}
-    
-    # 简单的用户名验证
-    if [[ -z "$username" || "$username" =~ [[:space:]] ]]; then
-        echo -e "${RED}错误: 用户名不能为空或包含空格${NC}"
-        return 1
-    fi
-    
-    # 读取密码（不显示）
-    while true; do
-        read -sp "请输入密码 (至少6位): " password
-        echo
-        
-        if [ ${#password} -lt 6 ]; then
-            echo -e "${RED}错误: 密码长度至少需要6位${NC}"
-            continue
-        fi
-        
-        read -sp "请再次输入密码确认: " password_confirm
-        echo
-        
-        if [ "$password" != "$password_confirm" ]; then
-            echo -e "${RED}错误: 两次输入的密码不一致，请重新输入${NC}"
-            continue
-        fi
-        
-        break
-    done
-    
-    # 直接替换 app.py 中的用户名密码
-    echo -e "${YELLOW}正在更新账户配置...${NC}"
-    
-    # 直接替换 admin:admin123 模式
-    if grep -q '"admin": "admin123"' "$PROJECT_DIR/app.py"; then
-        sed -i "s/\"admin\": \"admin123\"/\"$username\": \"$password\"/g" "$PROJECT_DIR/app.py"
+}
+
+update_env_var() {
+    local key="$1"
+    local value="$2"
+    local sanitized
+    printf -v sanitized '%q' "$value"
+    ensure_env_file
+    if grep -q "^${key}=" "$ENV_FILE"; then
+        sed -i "s|^${key}=.*|${key}=${sanitized}|" "$ENV_FILE"
     else
-        # 替换 VALID_USERS 字典中的第一对用户名密码
-        sed -i "0,/\"[^\"]*\": \"[^\"]*\"/s/\"[^\"]*\": \"[^\"]*\"/\"$username\": \"$password\"/" "$PROJECT_DIR/app.py"
+        echo "${key}=${sanitized}" >> "$ENV_FILE"
     fi
-    
-    # 验证修改
-    if grep -q "\"$username\": \"$password\"" "$PROJECT_DIR/app.py"; then
-        echo -e "${GREEN}✓ 管理员账户设置成功${NC}"
-        echo "用户名: $username"
+}
+
+generate_secret_key() {
+    if command -v python3 >/dev/null 2>&1; then
+        python3 - <<'PY'
+import secrets
+print(secrets.token_urlsafe(32))
+PY
+    elif command -v openssl >/dev/null 2>&1; then
+        openssl rand -hex 32
     else
-        echo -e "${RED}错误: 账户设置失败，请手动编辑 app.py${NC}"
-        echo "请将以下内容添加到 app.py 的 VALID_USERS 中:"
-        echo "    \"$username\": \"$password\","
-        return 1
+        date +%s%N | sha256sum | head -c 64
     fi
-    
-    echo "========================================"
-    return 0
 }
 
 # 安装函数
@@ -243,8 +200,8 @@ install_app() {
     # 安装依赖
     install_requirements || exit 1
     
-    # 设置管理员账户
-    setup_admin_account
+    echo ""
+    echo -e "${YELLOW}提示:${NC} 已默认使用环境变量管理后台账号，可运行 './save_kua.sh reset' 配置管理员账号密码"
     
     echo ""
     echo -e "${GREEN}=== 安装完成 ===${NC}"
@@ -289,6 +246,12 @@ start_app() {
     # 启动
     echo "正在启动..."
     cd "$PROJECT_DIR"
+    
+    if [ -f "$ENV_FILE" ]; then
+        set -a
+        source "$ENV_FILE"
+        set +a
+    fi
     
     # 启动应用并记录PID
     source "$VENV_DIR/bin/activate"
@@ -415,25 +378,52 @@ fix_deps() {
 
 # 重置账户
 reset_account() {
-    echo "重置管理员账户..."
-    setup_admin_account
-}
-
-# 显示当前账户
-show_account() {
-    echo "当前管理员账户配置:"
+    echo ""
+    echo "========================================"
+    echo "  重置管理员账户"
+    echo "========================================"
     
-    if [ ! -f "$PROJECT_DIR/app.py" ]; then
-        echo -e "${RED}错误: app.py 不存在${NC}"
+    read -p "请输入新的管理员用户名 (默认: admin): " username
+    username=${username:-admin}
+    
+    if [[ -z "$username" || "$username" =~ [[:space:]] ]]; then
+        echo -e "${RED}错误: 用户名不能为空或包含空格${NC}"
         return 1
     fi
     
-    if grep -q "VALID_USERS = {" "$PROJECT_DIR/app.py"; then
-        echo -e "${GREEN}找到用户配置:${NC}"
-        grep -A 5 "VALID_USERS = {" "$PROJECT_DIR/app.py" | grep -E '\".*\":' | sed 's/^/  /'
-    else
-        echo "未找到 VALID_USERS 配置"
+    while true; do
+        read -sp "请输入新的管理员密码 (至少6位): " password
+        echo
+        
+        if [ ${#password} -lt 6 ]; then
+            echo -e "${RED}错误: 密码长度至少6位${NC}"
+            continue
+        fi
+        
+        read -sp "请再次输入密码确认: " password_confirm
+        echo
+        
+        if [ "$password" != "$password_confirm" ]; then
+            echo -e "${RED}错误: 两次输入的密码不一致，请重新输入${NC}"
+            continue
+        fi
+        
+        break
+    done
+    
+    update_env_var "QUARK_MANAGER_ADMIN_USERNAME" "$username"
+    update_env_var "QUARK_MANAGER_ADMIN_PASSWORD" "$password"
+    
+    if ! grep -q "^QUARK_MANAGER_SECRET_KEY=" "$ENV_FILE" 2>/dev/null; then
+        secret_value=$(generate_secret_key | tr -d '\r\n')
+        update_env_var "QUARK_MANAGER_SECRET_KEY" "$secret_value"
     fi
+    
+    echo -e "${GREEN}✓ 管理员账户已更新${NC}"
+    echo "用户名: $username"
+    echo ""
+    echo "正在重启应用以应用新的配置..."
+    restart_app
 }
 
 # 帮助函数
@@ -450,8 +440,7 @@ show_help() {
     echo "  $0 cron.log   查看追更日志"
     echo "  $0 clean      清理日志文件"
     echo "  $0 fix        修复应用依赖"
-    echo "  $0 account    显示当前账户"
-    echo "  $0 reset      重置管理员账户"
+    echo "  $0 reset      重置管理员账户并重启应用"
     echo "  $0 help       显示帮助信息"
     echo ""
     echo "配置信息:"
@@ -461,11 +450,12 @@ show_help() {
     echo "  应用日志: $LOG_FILE"
     echo "  追更日志: $CRON_LOG_FILE"
     echo "  GitHub仓库: $GITHUB_REPO"
+    echo "  环境变量文件: $ENV_FILE"
     echo ""
     echo "快速开始:"
     echo "  ./save_kua.sh install   # 首次安装（自动从GitHub克隆）"
     echo "  ./save_kua.sh start     # 启动应用"
-    echo "  ./save_kua.sh status    # 查看状态"
+    echo "  ./save_kua.sh reset     # 设置管理员账号并重启"
 }
 
 # 主逻辑
@@ -479,7 +469,6 @@ case "$1" in
     "cron.log") view_cron_log ;;
     "clean")   clean_log   ;;
     "fix")     fix_deps    ;;
-    "account") show_account ;;
     "reset")   reset_account ;;
     "help"|"--help"|"-h"|"")
         show_help ;;

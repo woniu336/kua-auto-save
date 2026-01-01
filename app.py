@@ -9,7 +9,7 @@ import json
 import shutil
 import asyncio
 import aiohttp
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file, session
 import logging
 
@@ -18,7 +18,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.secret_key = 'quark-manager-secret-key-2025'
+app.secret_key = os.environ.get('QUARK_MANAGER_SECRET_KEY', 'quark-manager-secret-key-2025')
+app.permanent_session_lifetime = timedelta(hours=48)
 
 # 配置文件路径
 CONFIG_FILE = 'quark_config.json'
@@ -636,11 +637,35 @@ manager = QuarkManager()
 
 # ==================== 登录系统 ====================
 
-# 简单的用户认证（硬编码用户名和密码）
-# 在实际应用中，应该从数据库或配置文件中读取
-VALID_USERS = {
-    "admin": "admin123",
-}
+# 简单的用户认证（默认使用环境变量配置，可扩展至数据库/持久化存储）
+def load_valid_users():
+    """从环境变量加载用户名和密码，格式：user1:pass1;user2:pass2"""
+    users_env = os.environ.get('QUARK_MANAGER_USERS', '').strip()
+    if users_env:
+        users = {}
+        for pair in users_env.split(';'):
+            if not pair.strip():
+                continue
+            if ':' in pair:
+                username, password = pair.split(':', 1)
+                username = username.strip()
+                password = password.strip()
+                if username and password:
+                    users[username] = password
+        if users:
+            return users
+    
+    username = os.environ.get('QUARK_MANAGER_ADMIN_USERNAME', '').strip()
+    password = os.environ.get('QUARK_MANAGER_ADMIN_PASSWORD', '').strip()
+    if username and password:
+        return {username: password}
+    
+    # 默认账户仅用于本地开发
+    return {
+        "admin": "admin123",
+    }
+
+VALID_USERS = load_valid_users()
 
 def login_required(f):
     """登录验证装饰器"""
@@ -1214,6 +1239,7 @@ def simple_login():
         
         # 验证用户名和密码
         if username in VALID_USERS and VALID_USERS[username] == password:
+            session.permanent = True
             session['logged_in'] = True
             session['username'] = username
             flash('登录成功！', 'success')
@@ -1230,8 +1256,8 @@ def simple_login():
 @app.route('/logout')
 def logout():
     """退出登录"""
-    session.pop('logged_in', None)
-    session.pop('username', None)
+    session.clear()
+    session.permanent = False
     flash('已退出登录', 'success')
     return redirect(url_for('simple_login'))
 

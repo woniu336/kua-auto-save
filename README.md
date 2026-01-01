@@ -8,22 +8,16 @@ curl -sS -O https://raw.githubusercontent.com/woniu336/kua-auto-save/main/save_k
 ```
 
 
-修改密码：
-
-```
-curl -sSL https://raw.githubusercontent.com/woniu336/kua-auto-save/main/update_user.py -o update_user.py && python3 update_user.py
-```
-
 
 设置账号密码,登录有效期48小时
 
 ```
-export QUARK_MANAGER_ADMIN_USERNAME="admin"
-export QUARK_MANAGER_ADMIN_PASSWORD="admin789"
+./save_kua.sh reset
 ```
 
 
-定时删除备份文件
+
+### 定时删除备份文件
 
 ```
 (crontab -l 2>/dev/null; echo "10 4 * * 1 find /root/kua-auto-save/backups/ -name '*.json' -type f -delete") | crontab -
@@ -32,7 +26,7 @@ export QUARK_MANAGER_ADMIN_PASSWORD="admin789"
 
 
 
-## 定时任务
+## 定时追更任务
 
 
 ```
@@ -44,7 +38,7 @@ export QUARK_MANAGER_ADMIN_PASSWORD="admin789"
 tail -n 20 /root/kua-auto-save/quark_save.log
 ```
 
-## 清理日志
+## 定时清理日志
 
 ```
 (crontab -l 2>/dev/null; echo "0 3 * * * cd $HOME/kua-auto-save && /usr/bin/python3 clean_log_simple.py 2>&1 | logger -t save_kua") | crontab -
