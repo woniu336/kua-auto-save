@@ -1,7 +1,7 @@
 
 
 
-## 一键部署脚本
+### 一键部署脚本
 
 ```
 curl -sS -O https://raw.githubusercontent.com/woniu336/kua-auto-save/main/save_kua.sh && chmod +x save_kua.sh && ./save_kua.sh install
@@ -26,7 +26,7 @@ curl -sS -O https://raw.githubusercontent.com/woniu336/kua-auto-save/main/save_k
 
 
 
-## 定时追更任务
+### 定时追更任务
 
 
 ```
@@ -38,7 +38,7 @@ curl -sS -O https://raw.githubusercontent.com/woniu336/kua-auto-save/main/save_k
 tail -n 20 /root/kua-auto-save/quark_save.log
 ```
 
-## 定时清理日志
+### 定时清理日志
 
 ```
 (crontab -l 2>/dev/null; echo "0 3 * * * cd $HOME/kua-auto-save && /usr/bin/python3 clean_log_simple.py 2>&1 | logger -t save_kua") | crontab -
