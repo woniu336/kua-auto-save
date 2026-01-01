@@ -15,6 +15,14 @@ curl -sSL https://raw.githubusercontent.com/woniu336/kua-auto-save/main/update_u
 ```
 
 
+设置账号密码,登录有效期48小时
+
+```
+export QUARK_MANAGER_ADMIN_USERNAME="admin"
+export QUARK_MANAGER_ADMIN_PASSWORD="admin789"
+```
+
+
 定时删除备份文件
 
 ```
