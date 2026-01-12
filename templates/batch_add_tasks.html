@@ -10,7 +10,20 @@
                 <h4 class="mb-0"><i class="bi bi-upload"></i> 批量添加任务</h4>
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ url_for('batch_add_tasks') }}">
+                <!-- 进度显示区域 -->
+                <div id="progress-section" style="display: none;">
+                    <div class="alert alert-info">
+                        <h6 class="mb-2"><i class="bi bi-hourglass-split"></i> 正在处理...</h6>
+                        <div class="progress mb-2" style="height: 25px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-info"
+                                 id="progress-bar" style="width: 0%;">0%</div>
+                        </div>
+                        <small class="text-muted" id="progress-message">准备中...</small>
+                    </div>
+                </div>
+                
+                <!-- 提交表单 -->
+                <form id="batch-add-form" method="POST" action="{{ url_for('batch_add_tasks') }}">
                     <div class="mb-3">
                         <label for="account_id" class="form-label">选择目标账号</label>
                         <select class="form-select" id="account_id" name="account_id" required>
@@ -23,7 +36,7 @@
                     
                     <div class="mb-3">
                         <label for="task_content" class="form-label">任务内容</label>
-                        <textarea class="form-control" id="task_content" name="task_content" rows="10" required 
+                        <textarea class="form-control" id="task_content" name="task_content" rows="10" required
                                   placeholder="请输入任务列表，每行一个任务，格式为：任务名称=分享链接
 例如：
 电影合集=https://pan.quark.cn/s/xxxxxxxx#/list/share=/Movies/电影合集
@@ -39,7 +52,7 @@
                         <a href="{{ url_for('index') }}" class="btn btn-secondary me-md-2">
                             <i class="bi bi-arrow-left"></i> 返回首页
                         </a>
-                        <button type="submit" class="btn btn-info">
+                        <button type="submit" class="btn btn-info" id="submit-btn">
                             <i class="bi bi-upload"></i> 批量添加
                         </button>
                     </div>
@@ -111,4 +124,93 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('batch-add-form');
+    const submitBtn = document.getElementById('submit-btn');
+    const progressSection = document.getElementById('progress-section');
+    const progressBar = document.getElementById('progress-bar');
+    const progressMessage = document.getElementById('progress-message');
+    
+    // 表单提交处理
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const taskContent = formData.get('task_content');
+        
+        // 验证输入
+        if (!taskContent || !taskContent.trim()) {
+            alert('请输入任务内容');
+            return;
+        }
+        
+        const lines = taskContent.trim().split('\n').filter(line => line.trim() && line.includes('='));
+        if (lines.length === 0) {
+            alert('没有有效的任务，请检查格式（任务名称=链接）');
+            return;
+        }
+        
+        // 显示进度区域
+        progressSection.style.display = 'block';
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> 处理中...';
+        
+        // 更新进度
+        const updateProgress = (percent, message) => {
+            progressBar.style.width = percent + '%';
+            progressBar.textContent = percent + '%';
+            progressMessage.textContent = message;
+        };
+        
+        try {
+            // 阶段1：解析任务 (20%)
+            updateProgress(20, `解析中：发现 ${lines.length} 个任务`);
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // 阶段2：准备提交 (40%)
+            updateProgress(40, '准备提交任务...');
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // 阶段3：提交表单 (60%)
+            updateProgress(60, '正在批量检查链接（可能需要几秒钟）...');
+            
+            // 发送表单
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: formData
+            });
+            
+            // 阶段4：处理响应 (80%)
+            updateProgress(80, '保存配置中...');
+            
+            if (response.redirected) {
+                // 保存完成
+                updateProgress(100, '添加完成！');
+                progressBar.classList.remove('bg-info');
+                progressBar.classList.add('bg-success');
+                
+                // 延迟跳转
+                setTimeout(() => {
+                    window.location.href = response.url;
+                }, 800);
+            } else {
+                throw new Error('服务器响应异常');
+            }
+            
+        } catch (error) {
+            console.error('批量添加失败:', error);
+            progressBar.classList.remove('bg-info');
+            progressBar.classList.add('bg-danger');
+            progressMessage.textContent = '添加失败：' + (error.message || '未知错误');
+            progressSection.querySelector('.alert').classList.remove('alert-info');
+            progressSection.querySelector('.alert').classList.add('alert-danger');
+            
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-upload"></i> 批量添加';
+        }
+    });
+});
+</script>
 {% endblock %}
