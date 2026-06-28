@@ -15,6 +15,14 @@ curl -sS -O https://raw.githubusercontent.com/woniu336/kua-auto-save/main/save_k
 ./save_kua.sh reset
 ```
 
+安装依赖
+```
+cd /root/kua-auto-save && /usr/bin/python3 -m pip install -r requirements.txt --break-system-packages
+```
+和
+```
+/usr/bin/python3 -m pip install treelib --break-system-packages
+```
 
 
 ### 定时删除备份文件
